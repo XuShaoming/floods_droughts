@@ -1,0 +1,49 @@
+# Byte-compiled files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Virtual environment folders
+env/
+venv/
+
+# Configuration and environment files
+*.env
+*.DS_Store
+
+# Build and distribution folders
+build/
+dist/
+*.egg-info/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE settings
+.idea/
+.vscode/
+*.swp
+
+# Unit test cache
+.pytest_cache/
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# Other
+*.bak
+*.orig
+*.rej
+
+
+# Folders
+eddev1/
+maps/
+# Files
+*.zip
