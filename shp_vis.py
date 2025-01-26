@@ -2,6 +2,12 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
+'''
+This script visualize:
+    1. CLimate Data Ploygons with USA Contours
+    2. Climate Data Locations with USA countours
+    3. Kettle River Watershed in HUC8 and HUC12 levels. 
+'''
 
 # File paths
 base_dir = "eddev1"
@@ -27,11 +33,11 @@ custom_legend = [
     Patch(edgecolor='blue', facecolor='lightblue', alpha=0.5, label='Kettle River Watersheds'),
 ]
 plt.legend(handles=custom_legend, loc='upper right')
-plt.title("Kettle River Watersheds with USA Contours", fontsize=14)
+plt.title("Kettle River Watersheds", fontsize=14)
 plt.xlabel("Longitude", fontsize=12)
 plt.ylabel("Latitude", fontsize=12)
 plt.grid(True)
-plt.savefig('KettleR_Watersheds_NewMetSeg.png')
+plt.savefig('maps/KettleR_Watersheds_NewMetSeg.png')
 plt.show()
 
 # Visualization of Climate_Data_Locations.shp
@@ -56,7 +62,7 @@ plt.xlabel("Longitude", fontsize=12)
 plt.ylabel("Latitude", fontsize=12)
 plt.legend(handles=custom_legend, loc='upper right')
 plt.grid(True)
-plt.savefig('Climate_Data_Locations_with_USA_Contours.png')
+plt.savefig('maps/Climate_Data_Locations_with_USA_Contours.png')
 
 # Visualization of Climate_Data_Polygons.shp
 polygons_shp = f"{base_dir}/Climate_Data_Polygons.shp"
@@ -81,5 +87,5 @@ custom_legend = [
 # plt.legend()
 plt.legend(handles=custom_legend, loc='upper right')
 plt.grid(True)
-plt.savefig('Climate_Data_Polygons_with_USA_Contours.png')
+plt.savefig('maps/Climate_Data_Polygons_with_USA_Contours.png')
 plt.show()
