@@ -45,5 +45,6 @@ htmlcov/
 # Folders
 eddev1/
 maps/
+depreciated/
 # Files
 *.zip
