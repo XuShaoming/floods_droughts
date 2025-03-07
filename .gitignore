@@ -44,8 +44,16 @@ htmlcov/
 
 # Folders
 eddev1/
+eddev1_v1/
+zip_data/
 maps/
 depreciated/
 # Files
 *.zip
 *.npy
+*.xlsx
+*.csv
+*.html
+*.png
+**/img/
+# NHDplus/

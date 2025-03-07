@@ -12,15 +12,15 @@ import pytz
 base_dir = "eddev1"
 watersheds_shp = f"{base_dir}/KettleR_Watersheds_NewMetSeg.shp"
 centroid_locations_csv = f"{base_dir}/Lat_Lon_Centroid_Locations.csv"
-meteo_list = ['T2', 'DEWPT', 'PRECIP', 'SWDNB', 'WSPD10']
-cmaps = ['coolwarm', 'coolwarm', 'Blues', 'YlOrRd', 'viridis']
+meteo_list = ['T2', 'DEWPT', 'PRECIP', 'SWDNB', 'WSPD10', 'LH']
+cmaps = ['coolwarm', 'coolwarm', 'Blues', 'YlOrRd', 'viridis', 'coolwarm']
 output_dir = "maps"
 # Ensure output directory exists
 os.makedirs(output_dir, exist_ok=True)
 
 
-time_start = '1975-03-01 00:00:00'
-time_end = '1975-03-10 00:00:00'
+time_start = '1975-03-05 06:00:00'
+time_end = '1975-03-06 06:00:00'
 time_period = pd.date_range(start=time_start, end=time_end, freq='h')
 # Define the Central Time timezone
 timezone = pytz.timezone("US/Central")
@@ -73,7 +73,7 @@ for _, row in watersheds_gdf.iterrows():
     normalized_weights_list.append(weights / weights.sum())
 
 for cmap, meteo in zip(cmaps, meteo_list):
-    meteo_csv = f"{base_dir}/WRF-CESM/Histmodel_{meteo}.csv"
+    meteo_csv = f"{base_dir}/WRF-CESM/Historical_{meteo}.csv"
     print(f"Processing {meteo_csv}")
 
     # Generate maps for each time period
