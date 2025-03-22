@@ -8,6 +8,29 @@ from sklearn.manifold import TSNE
 import geopandas as gpd
 import plotly.express as px
 import plotly.graph_objects as go
+import seaborn as sns
+import networkx as nx
+import matplotlib as mpl
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import reverse_cuthill_mckee
+
+def feature_selection(df, threshold=0.95):
+    # Calculate correlation matrix
+    corr_matrix = df.corr().abs()
+
+    # Select upper triangle of correlation matrix
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+
+    # Find features with correlation greater than threshold
+    to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
+
+    # Drop features with high correlation
+    df_reduced = df.drop(columns=to_drop)
+
+    # Return the reduced dataframe
+    return df_reduced.columns.tolist()
 
 # Load the CSV file
 img_dir = os.path.join(os.getcwd(), "imgs")
@@ -29,6 +52,7 @@ print()
 
 # Identify numeric columns for analysis
 numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+
 print("\nNumeric Columns:")
 print(numeric_cols)
 # Record the indices before dropping
@@ -58,6 +82,194 @@ print(numeric_cols)
 print("\nData shape after dropping rows and columns:")
 print(df.shape)
 print()
+
+# Apply feature selection based on the flag
+apply_feature_selection = False  # Set this flag to True or False as needed
+feature_selection_threshold = 0.85  # Set the threshold for feature selection
+if apply_feature_selection:
+    selected_features = feature_selection(df[numeric_cols], threshold=feature_selection_threshold)
+    dropped_features = set(numeric_cols) - set(selected_features)
+    print("\nDropped Features:")
+    print(dropped_features)
+    df = df[selected_features + ['Name']]  # Keep the 'Name' and 'huc12' columns
+else:
+    print("\nFeature selection not applied.")
+
+# Update the list of numeric columns after feature selection
+numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+print("\nNumeric Columns (After Feature Selection):")
+print(numeric_cols)
+print("\nData shape after feature selection:")
+print(df.shape)
+
+# ------------------------------
+# Correlation Matrix for Numeric Attributes
+# ------------------------------
+numeric_df = df[numeric_cols]
+corr_matrix = numeric_df.corr()
+
+# Ensure the correlation matrix contains only finite values (fill NaNs with 0 if any)
+if not np.all(np.isfinite(corr_matrix)):
+    corr_matrix = corr_matrix.fillna(0)
+    print("Non-finite values found in the correlation matrix; filled NaNs with 0.")
+
+# ------------------------------
+# Correlation Heatmap for Numeric Attributes
+# ------------------------------
+# Convert the correlation matrix to a sparse CSR matrix for the algorithm
+sparse_corr = csr_matrix(corr_matrix.values)
+# Compute the permutation vector using Reverse Cuthill-McKee algorithm
+perm = reverse_cuthill_mckee(sparse_corr, symmetric_mode=True)
+# Reorder the correlation matrix using the permutation indices
+reordered_corr = corr_matrix.iloc[perm, :].iloc[:, perm]
+
+plt.figure(figsize=(36, 30))
+sns.heatmap(reordered_corr, annot=True, cmap='coolwarm', fmt=".2f",
+            xticklabels=reordered_corr.columns, yticklabels=reordered_corr.columns)
+plt.title("Reordered Correlation Heatmap (Reverse Cuthill-McKee)")
+plt.tight_layout()
+
+# Save the heatmap figure to the imgs folder
+heatmap_file = os.path.join(img_dir, "rcm_reordered_correlation_heatmap.png")
+plt.savefig(heatmap_file)
+plt.close()
+print(f"Reordered correlation heatmap saved to {heatmap_file}")
+
+# ------------------------------
+# Correlation matrix graph for all numeric attributes
+# ------------------------------
+# Build the Graph with edges where |corr| > 0.75
+threshold = 0.75
+G = nx.Graph()
+
+# Add all columns as nodes
+for col in corr_matrix.columns:
+    G.add_node(col)
+
+# Add edges for high correlations
+for i in range(len(corr_matrix.columns)):
+    for j in range(i + 1, len(corr_matrix.columns)):
+        corr_val = corr_matrix.iloc[i, j]
+        if abs(corr_val) > threshold:
+            col_i = corr_matrix.columns[i]
+            col_j = corr_matrix.columns[j]
+            # Store correlation as an edge attribute called 'weight'
+            G.add_edge(col_i, col_j, weight=corr_val)
+
+# Build a subgraph containing only positive correlations so that strongly positive nodes cluster together.
+G_pos = nx.Graph()
+for u, v, d in G.edges(data=True):
+    if d['weight'] > threshold:
+        G_pos.add_edge(u, v, weight=d['weight'])
+# Ensure all nodes are present
+for node in G.nodes():
+    if node not in G_pos:
+        G_pos.add_node(node)
+
+# Compute layout based on the positive subgraph.
+# Increase 'k' to increase spacing between clusters.
+pos = nx.spring_layout(G_pos, k=1.5, seed=42, iterations=200)
+
+# --- Organize the Graph Layout Static ---
+# Draw the Full Graph Using the Computed Positions ---
+fig, ax = plt.subplots(figsize=(20, 20))
+ax.set_title(f"Graph of Columns with |corr| > {threshold}\n(Strongly positive correlations clustered)", fontsize=18)
+
+# Draw nodes with labels
+nx.draw_networkx_nodes(G, pos, node_color='lightblue', edgecolors='black', node_size=600, ax=ax)
+nx.draw_networkx_labels(G, pos, font_size=10, ax=ax)
+
+# Draw edges.
+# Edge colors will be based on the correlation values using the coolwarm colormap.
+edge_weights = [G[u][v]['weight'] for u, v in G.edges()]
+edges = nx.draw_networkx_edges(
+    G, pos,
+    edge_color=edge_weights,
+    edge_cmap=plt.cm.coolwarm,
+    edge_vmin=-1,
+    edge_vmax=1,
+    width=2,
+    ax=ax
+)
+
+# Add a colorbar to indicate correlation values.
+sm = mpl.cm.ScalarMappable(cmap=plt.cm.coolwarm, norm=plt.Normalize(vmin=-1, vmax=1))
+sm.set_array([])
+cbar = fig.colorbar(sm, ax=ax, shrink=0.7, label='Correlation')
+
+ax.axis('off')
+graph_file = os.path.join(img_dir, "column_correlation_graph.png")
+plt.savefig(graph_file, dpi=300, bbox_inches='tight')
+plt.show()
+print(f"Graph visualization saved to: {graph_file}")
+
+# --- Organize the Graph Layout Interactive ---
+edge_traces = []
+# For each edge in the graph, create a separate trace (so that edge color can reflect the correlation)
+for u, v, d in G.edges(data=True):
+    x0, y0 = pos[u]
+    x1, y1 = pos[v]
+    weight = d['weight']
+    # Map the correlation value to a color using the coolwarm colormap
+    norm = mcolors.Normalize(vmin=-1, vmax=1)
+    cmap = cm.get_cmap("coolwarm")
+    color = mcolors.to_hex(cmap(norm(weight)))
+    
+    trace = go.Scatter(
+        x=[x0, x1, None],
+        y=[y0, y1, None],
+        mode='lines',
+        line=dict(width=2, color=color),
+        hoverinfo='text',
+        text=f"{u} - {v}: {weight:.2f}"
+    )
+    edge_traces.append(trace)
+
+# Create node trace
+node_x = []
+node_y = []
+node_text = []
+for node in G.nodes():
+    x, y = pos[node]
+    node_x.append(x)
+    node_y.append(y)
+    node_text.append(node)
+
+node_trace = go.Scatter(
+    x=node_x,
+    y=node_y,
+    mode='markers+text',
+    text=node_text,
+    textposition="bottom center",
+    hoverinfo='text',
+    marker=dict(
+        size=20,
+        color='lightblue',
+        line_width=2
+    )
+)
+
+# Combine all traces into a figure
+fig = go.Figure(
+    data=edge_traces + [node_trace],
+    layout=go.Layout(
+        title=f"Interactive Graph of Columns with |corr| > {threshold}",
+        titlefont_size=16,
+        showlegend=False,
+        hovermode='closest',
+        margin=dict(b=20, l=5, r=5, t=40),
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        # Enable zoom and pan
+        dragmode='zoom'
+    )
+)
+
+# Save as Interactive HTML and Show
+output_file = os.path.join(img_dir, "interactive_column_correlation_graph.html")
+fig.write_html(output_file)
+fig.show()
+print(f"Interactive graph saved to: {output_file}")
 
 # Standardize features
 scaler = StandardScaler()
@@ -172,6 +384,7 @@ df['huc12'] = df['huc12'].apply(lambda x: str(x).zfill(12))
 
 # Match the huc12 from the CSV with the WBDHU12 shapefile
 matched_gdf = wbdhu12_gdf[wbdhu12_gdf['huc12'].isin(df['huc12'])]
+
 
 # Plot the clusters on the map
 plt.figure(figsize=(10, 10))
