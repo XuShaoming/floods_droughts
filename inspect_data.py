@@ -1,68 +1,56 @@
 import geopandas as gpd
 import pandas as pd
+import numpy as np
 import os
 
-# Path to the unzipped directory
+# File paths
 base_dir = "eddev1"
+watersheds_shp = f"{base_dir}/KettleR_Watersheds_NewMetSeg.shp"
+centroid_locations_csv = f"{base_dir}/Lat_Lon_Centroid_Locations.csv"
+meteo_var = 'T2'  # Just check one variable to start
 
-# List of shapefiles to inspect
-shapefiles = [
-    "Climate_Data_Locations.shp",
-    "Climate_Data_Polygons.shp",
-    "KettleR_Watersheds_NewMetSeg.shp",
-]
+print("Data Inspection Script")
+print("=====================")
 
-# List of CSV files to inspect
-csv_files = [
-    "Lat_Lon_Centroid_Locations.csv",
-    "WRF-CESM/Histmodel_DEWPT.csv",
-    "WRF-CESM/Histmodel_PRECIP.csv",
-    "WRF-CESM/Histmodel_SWDNB.csv",
-    "WRF-CESM/Histmodel_T2.csv",
-    "WRF-CESM/Histmodel_WSPD10.csv",
-    "WRF-CESM/RCP4.5_DEWPT.csv",
-    "WRF-CESM/RCP4.5_PRECIP.csv",
-    "WRF-CESM/RCP4.5_SWDNB.csv",
-    "WRF-CESM/RCP4.5_T2.csv",
-    "WRF-CESM/RCP4.5_WSPD10.csv",
-    "WRF-CESM/RCP6.0_DEWPT.csv",
-    "WRF-CESM/RCP6.0_PRECIP.csv",
-    "WRF-CESM/RCP6.0_SWDNB.csv",
-    "WRF-CESM/RCP6.0_T2.csv",
-    "WRF-CESM/RCP6.0_WSPD10.csv",
-    "WRF-CESM/RCP8.5_DEWPT.csv",
-    "WRF-CESM/RCP8.5_PRECIP.csv",
-    "WRF-CESM/RCP8.5_SWDNB.csv",
-    "WRF-CESM/RCP8.5_T2.csv",
-    "WRF-CESM/RCP8.5_WSPD10.csv",
-]
+# Check watersheds shapefile
+print("\nChecking watersheds shapefile...")
+watersheds_gdf = gpd.read_file(watersheds_shp)
+print(f"Loaded {len(watersheds_gdf)} watersheds")
+print(f"Columns: {', '.join(watersheds_gdf.columns)}")
+print(f"HUC8 unique values: {', '.join(map(str, watersheds_gdf['HUC8'].unique()))}")
+print(f"Sample data:")
+print(watersheds_gdf[['HUC8', 'Area_ac']].head())
 
-# Inspect shapefiles
-print("\n=== Inspecting Shapefiles ===")
-for shp in shapefiles:
-    filepath = os.path.join(base_dir, shp)
-    if os.path.exists(filepath):
-        print(f"\nFile: {shp}")
-        gdf = gpd.read_file(filepath)
-        print("First 5 rows:")
-        print(gdf.head())
-        print("\nColumns:")
-        print(gdf.columns)
-        print(f"CRS (Coordinate Reference System): {gdf.crs}")
-    else:
-        print(f"File not found: {shp}")
+# Check centroid locations
+print("\nChecking centroid locations...")
+centroid_df = pd.read_csv(centroid_locations_csv)
+print(f"Loaded {len(centroid_df)} centroid locations")
+print(f"Columns: {', '.join(centroid_df.columns)}")
+print(f"Sample data:")
+print(centroid_df.head())
 
-# Inspect CSV files
-print("\n=== Inspecting CSV Files ===")
-for csv in csv_files:
-    filepath = os.path.join(base_dir, csv)
-    if os.path.exists(filepath):
-        print(f"\nFile: {csv}")
-        df = pd.read_csv(filepath)
-        print("First 5 rows:")
-        print(df.head())
-        print("\nColumns:")
-        print(df.columns)
-        print(f"Number of rows: {len(df)}")
-    else:
-        print(f"File not found: {csv}")
+# Check meteorology data
+print("\nChecking meteorology data...")
+meteo_csv = f"{base_dir}/WRF-CESM/Historical_{meteo_var}.csv"
+try:
+    meteo_df = pd.read_csv(meteo_csv)
+    print(f"Loaded data from {meteo_csv}")
+    print(f"Shape: {meteo_df.shape}")
+    print(f"Columns: {', '.join(meteo_df.columns[:5])}{'...' if len(meteo_df.columns) > 5 else ''}")
+    
+    # Convert Date column to datetime
+    meteo_df['Date'] = pd.to_datetime(meteo_df['Date'])
+    print(f"Time range: {meteo_df['Date'].min()} to {meteo_df['Date'].max()}")
+    print(f"Sample data:")
+    print(meteo_df.head(3).to_string(max_cols=8))
+    
+    # Check if grid IDs in meteo data match with centroid IDs
+    meteo_cols = set(meteo_df.columns)
+    centroid_ids = set(map(str, centroid_df['Centroid_ID']))
+    print(f"\nCentroid IDs in meteo data: {len(meteo_cols.intersection(centroid_ids))}")
+    print(f"Total centroid IDs: {len(centroid_ids)}")
+    
+except Exception as e:
+    print(f"Error loading meteorology data: {str(e)}")
+
+print("\nInspection complete.")
