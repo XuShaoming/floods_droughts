@@ -474,32 +474,59 @@ class FloodDroughtDataLoader:
             'date_test': data_splits['date_test']
         }
     
-    def inverse_transform_targets(self, scaled_targets):
+    def inverse_transform(self, data, scaler):
         """
-        Transform scaled targets back to original scale.
+        Transform scaled data back to original scale.
         
         Parameters:
         -----------
-        scaled_targets : np.ndarray or torch.Tensor
-            Scaled target values
+        data : np.ndarray, torch.Tensor, or pd.DataFrame
+            Scaled data values
+        scaler : sklearn.preprocessing.StandardScaler
+            The scaler used for transformation
             
         Returns:
         --------
-        np.ndarray
-            Targets in original scale
+        np.ndarray or pd.DataFrame
+            Data in original scale (same type as input for DataFrame)
         """
-        if self.scale_targets:
+        # Handle pandas DataFrame
+        if isinstance(data, pd.DataFrame):
+            # Store index and columns for later reconstruction
+            original_index = data.index
+            original_columns = data.columns
+            
+            # Convert to numpy array for inverse transform
+            data_values = data.values
+            
+            # Apply inverse transform
+            if scaler is not None:
+                transformed_values = scaler.inverse_transform(data_values)
+            else:
+                transformed_values = data_values
+            
+            # Return as DataFrame with original index and columns
+            return pd.DataFrame(
+                transformed_values, 
+                index=original_index, 
+                columns=original_columns
+            )
+        
+        # Handle numpy arrays and tensors
+        if isinstance(data, torch.Tensor):
             # Convert torch tensor to numpy if necessary
-            if isinstance(scaled_targets, torch.Tensor):
-                scaled_targets = scaled_targets.cpu().numpy()
-                
-            # Ensure correct shape for inverse_transform
-            if scaled_targets.ndim == 1:
-                scaled_targets = scaled_targets.reshape(-1, 1)
-                
-            return self.target_scaler.inverse_transform(scaled_targets)
+            data = data.cpu().numpy()
+        
+        if data.ndim == 1:
+            # If 1D, reshape to 2D for inverse transform
+            data = data.reshape(-1, 1)
+        elif data.ndim > 2:
+            raise ValueError("Data must be 1D or 2D for inverse transformation")
+        
+        if scaler is not None:
+            return scaler.inverse_transform(data)
         else:
-            return scaled_targets
+            return data
         
     def get_feature_names(self):
         """Returns the names of the selected features."""
@@ -512,6 +539,7 @@ class FloodDroughtDataLoader:
     def reconstruct_time_series(self, 
                                 windowed_data: np.ndarray, 
                                 date_windows: List[pd.DatetimeIndex],
+                                columns: List[str],
                                 aggregation_method: str = 'mean') -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]:
         """
         Reconstruct time series from windowed data using date information.
@@ -587,7 +615,7 @@ class FloodDroughtDataLoader:
         for window_idx, (data_window, date_window) in enumerate(zip(windowed_data, date_windows)):
             if is_many_to_many:
                 # Many-to-many: each timestep in window has a prediction
-                for time_step, (timestamp, values) in enumerate(zip(date_window, data_window)):
+                for time_step, (values, timestamp) in enumerate(zip(data_window, date_window)):
                     ts_idx = timestamp_to_idx[timestamp]
                     values_sum[ts_idx] += values
                     values_count[ts_idx] += 1
@@ -605,12 +633,6 @@ class FloodDroughtDataLoader:
             # Avoid division by zero
             mask = values_count > 0
             reconstructed_values[mask] = values_sum[mask] / values_count[mask]
-        elif aggregation_method == 'median':
-            # For median, we need to store all values, not just sum
-            # This is more memory intensive but necessary for median calculation
-            print("Warning: Median aggregation requires storing all values. Using mean instead for efficiency.")
-            mask = values_count > 0
-            reconstructed_values[mask] = values_sum[mask] / values_count[mask]
         elif aggregation_method in ['last', 'first']:
             # For last/first, we would need to track order, defaulting to mean
             print(f"Warning: {aggregation_method} aggregation not fully implemented. Using mean instead.")
@@ -618,12 +640,6 @@ class FloodDroughtDataLoader:
             reconstructed_values[mask] = values_sum[mask] / values_count[mask]
         else:
             raise ValueError(f"Unknown aggregation method: {aggregation_method}")
-        
-        # Create column names
-        if n_features == 1:
-            columns = ['value']
-        else:
-            columns = [f'feature_{i}' for i in range(n_features)]
         
         # Create DataFrames
         time_series_df = pd.DataFrame(
@@ -647,63 +663,6 @@ class FloodDroughtDataLoader:
         print(f"  - Timestamps with no data: {(values_count == 0).sum()}")
         
         return time_series_df, counts_df
-    
-    def reconstruct_predictions(self, 
-                              predictions: Union[np.ndarray, torch.Tensor],
-                              dataset_type: str = 'test',
-                              aggregation_method: str = 'mean') -> pd.DataFrame:
-        """
-        Convenience function to reconstruct predictions from a specific dataset.
-        
-        Parameters:
-        -----------
-        predictions : Union[np.ndarray, torch.Tensor]
-            Model predictions with the same shape as the dataset targets
-        dataset_type : str, default='test'
-            Which dataset to use for date information ('train', 'val', 'test')
-        aggregation_method : str, default='mean'
-            Method to aggregate overlapping predictions
-        
-        Returns:
-        --------
-        pd.DataFrame
-            Reconstructed time series of predictions
-        """
-        # Convert torch tensor to numpy if needed
-        if isinstance(predictions, torch.Tensor):
-            predictions = predictions.cpu().numpy()
-        
-        # Get the appropriate date windows
-        if dataset_type == 'train':
-            if not hasattr(self, 'train_dataset') or self.train_dataset is None:
-                raise ValueError("Train dataset not created. Call create_data_loaders() first.")
-            date_windows = self.train_dataset.windowed_dates
-        elif dataset_type == 'val':
-            if not hasattr(self, 'val_dataset') or self.val_dataset is None:
-                raise ValueError("Validation dataset not created. Call create_data_loaders() first.")
-            date_windows = self.val_dataset.windowed_dates
-        elif dataset_type == 'test':
-            if not hasattr(self, 'test_dataset') or self.test_dataset is None:
-                raise ValueError("Test dataset not created. Call create_data_loaders() first.")
-            date_windows = self.test_dataset.windowed_dates
-        else:
-            raise ValueError("dataset_type must be 'train', 'val', or 'test'")
-        
-        if date_windows is None:
-            raise ValueError("Date information not available for the specified dataset")
-        
-        # Use appropriate column names based on target variables
-        reconstructed_df, reconstruct_count_df = self.reconstruct_time_series(
-            predictions, 
-            date_windows, 
-            aggregation_method=aggregation_method,
-        )
-        
-        # Update column names to match target variables
-        if len(self.target_col) == reconstructed_df.shape[1]:
-            reconstructed_df.columns = self.target_col
-        
-        return reconstructed_df, reconstruct_count_df
 
 '''
 todo:
@@ -806,24 +765,162 @@ if __name__ == "__main__":
     reconstructed_targets, recontructed_counts = data_loader_year.reconstruct_time_series(
         windowed_data=data_splits['y_test'],
         date_windows=data_splits['date_test'],
+        columns=data_loader_year.get_target_name(),
         aggregation_method='mean'
     )
-    
+
     print(f"Reconstructed targets shape: {reconstructed_targets.shape}")
     print(f"Reconstructed targets columns: {reconstructed_targets.columns.tolist()}")
     print(f"Date range: {reconstructed_targets.index.min()} to {reconstructed_targets.index.max()}")
     print(f"Sample of reconstructed data:")
     print(reconstructed_targets.head())
+
+    reconstructed_targets = data_loader_year.inverse_transform(
+        data=reconstructed_targets, 
+        scaler=data_loader_year.target_scaler
+    )
     
-    # # Example using the convenience function
-    # print("\nUsing convenience function for reconstruction:")
-    # try:
-    #     # This would work if we had actual model predictions
-    #     # reconstructed_conv, reconstructed_counts  = data_loader_year.reconstruct_predictions(
-    #     #     predictions=dummy_predictions,
-    #     #     dataset_type='test',
-    #     #     aggregation_method='mean'
-    #     # )
-    #     print("Convenience function available - would work with actual model predictions")
-    # except Exception as e:
-    #     print(f"Note: {e}")
+    print(f"Reconstructed targets (original scale) shape: {reconstructed_targets.shape}")
+    print(f"Sample of inverse-transformed data:")
+    print(reconstructed_targets.head())
+
+
+    reconstructed_features, recontructed_feature_counts = data_loader_year.reconstruct_time_series(
+        windowed_data=data_splits['x_test'],
+        date_windows=data_splits['date_test'],
+        columns=data_loader_year.get_feature_names(),
+        aggregation_method='mean'
+    )
+
+    print(f"Reconstructed features shape: {reconstructed_features.shape}")
+    print(f"Reconstructed features columns: {reconstructed_features.columns.tolist()}")
+    print(f"Date range: {reconstructed_features.index.min()} to {reconstructed_features.index.max()}")
+    print(f"Sample of reconstructed features:")
+    print(reconstructed_features.head())
+    
+    # Inverse transform features back to original scale
+    reconstructed_features = data_loader_year.inverse_transform(
+        data=reconstructed_features, 
+        scaler=data_loader_year.feature_scaler
+    )
+    
+    print(f"Reconstructed features (original scale) shape: {reconstructed_features.shape}")
+    print(f"Sample of inverse-transformed features:")
+    print(reconstructed_features.head())
+
+    # Validation: Compare reconstructed data with original data
+    print("\n----- Validation: Comparing reconstructed vs original data -----")
+    
+    # Get original test data for comparison
+    test_data_original = data_loader_year._filter_data_by_years(
+        data_loader_year.test_years[0], 
+        data_loader_year.test_years[1]
+    )
+    
+    # Compare targets
+    print("\n--- Target Validation ---")
+    original_targets = test_data_original[data_loader_year.get_target_name()]
+    
+    # Find overlapping date range for comparison
+    overlap_start = max(original_targets.index.min(), reconstructed_targets.index.min())
+    overlap_end = min(original_targets.index.max(), reconstructed_targets.index.max())
+    
+    print(f"Original targets date range: {original_targets.index.min()} to {original_targets.index.max()}")
+    print(f"Reconstructed targets date range: {reconstructed_targets.index.min()} to {reconstructed_targets.index.max()}")
+    print(f"Overlap date range: {overlap_start} to {overlap_end}")
+    
+    # Create comparison DataFrame for overlapping period
+    original_overlap = original_targets.loc[overlap_start:overlap_end]
+    reconstructed_overlap = reconstructed_targets.loc[overlap_start:overlap_end]
+    
+    # Calculate reconstruction accuracy metrics
+    print(f"\nTarget Reconstruction Accuracy:")
+    print(f"Original data points in overlap: {len(original_overlap)}")
+    print(f"Reconstructed data points in overlap: {len(reconstructed_overlap)}")
+    
+    if len(original_overlap) > 0 and len(reconstructed_overlap) > 0:
+        # Align the data by reindexing
+        common_index = original_overlap.index.intersection(reconstructed_overlap.index)
+        if len(common_index) > 0:
+            orig_aligned = original_overlap.loc[common_index]
+            recon_aligned = reconstructed_overlap.loc[common_index]
+            
+            print(f"Common timestamps: {len(common_index)}")
+            
+            for col in data_loader_year.get_target_name():
+                if col in orig_aligned.columns and col in recon_aligned.columns:
+                    # Calculate metrics
+                    mae = np.mean(np.abs(orig_aligned[col] - recon_aligned[col]))
+                    rmse = np.sqrt(np.mean((orig_aligned[col] - recon_aligned[col])**2))
+                    correlation = np.corrcoef(orig_aligned[col], recon_aligned[col])[0,1] if len(orig_aligned) > 1 else np.nan
+                    
+                    print(f"\n{col}:")
+                    print(f"  MAE: {mae:.6f}")
+                    print(f"  RMSE: {rmse:.6f}")
+                    print(f"  Correlation: {correlation:.6f}")
+                    print(f"  Original range: [{orig_aligned[col].min():.3f}, {orig_aligned[col].max():.3f}]")
+                    print(f"  Reconstructed range: [{recon_aligned[col].min():.3f}, {recon_aligned[col].max():.3f}]")
+    
+    # Compare features
+    print("\n--- Feature Validation ---")
+    original_features = test_data_original[data_loader_year.get_feature_names()]
+    
+    # Find overlapping date range for features
+    feature_overlap_start = max(original_features.index.min(), reconstructed_features.index.min())
+    feature_overlap_end = min(original_features.index.max(), reconstructed_features.index.max())
+    
+    print(f"Original features date range: {original_features.index.min()} to {original_features.index.max()}")
+    print(f"Reconstructed features date range: {reconstructed_features.index.min()} to {reconstructed_features.index.max()}")
+    print(f"Feature overlap date range: {feature_overlap_start} to {feature_overlap_end}")
+    
+    # Create comparison for features
+    original_features_overlap = original_features.loc[feature_overlap_start:feature_overlap_end]
+    reconstructed_features_overlap = reconstructed_features.loc[feature_overlap_start:feature_overlap_end]
+    
+    print(f"\nFeature Reconstruction Accuracy:")
+    print(f"Original feature points in overlap: {len(original_features_overlap)}")
+    print(f"Reconstructed feature points in overlap: {len(reconstructed_features_overlap)}")
+    
+    if len(original_features_overlap) > 0 and len(reconstructed_features_overlap) > 0:
+        # Align the feature data
+        common_feature_index = original_features_overlap.index.intersection(reconstructed_features_overlap.index)
+        if len(common_feature_index) > 0:
+            orig_feat_aligned = original_features_overlap.loc[common_feature_index]
+            recon_feat_aligned = reconstructed_features_overlap.loc[common_feature_index]
+            
+            print(f"Common feature timestamps: {len(common_feature_index)}")
+            
+            # Calculate average metrics across all features
+            all_mae = []
+            all_rmse = []
+            all_corr = []
+            
+            for col in data_loader_year.get_feature_names()[:3]:  # Show first 3 features to avoid too much output
+                if col in orig_feat_aligned.columns and col in recon_feat_aligned.columns:
+                    mae = np.mean(np.abs(orig_feat_aligned[col] - recon_feat_aligned[col]))
+                    rmse = np.sqrt(np.mean((orig_feat_aligned[col] - recon_feat_aligned[col])**2))
+                    correlation = np.corrcoef(orig_feat_aligned[col], recon_feat_aligned[col])[0,1] if len(orig_feat_aligned) > 1 else np.nan
+                    
+                    all_mae.append(mae)
+                    all_rmse.append(rmse)
+                    if not np.isnan(correlation):
+                        all_corr.append(correlation)
+                    
+                    print(f"\n{col}:")
+                    print(f"  MAE: {mae:.6f}")
+                    print(f"  RMSE: {rmse:.6f}")
+                    print(f"  Correlation: {correlation:.6f}")
+            
+            if all_mae:
+                print(f"\nAverage across displayed features:")
+                print(f"  Average MAE: {np.mean(all_mae):.6f}")
+                print(f"  Average RMSE: {np.mean(all_rmse):.6f}")
+                if all_corr:
+                    print(f"  Average Correlation: {np.mean(all_corr):.6f}")
+    
+    print("\n----- Validation Complete -----")
+    print("Note: Small differences are expected due to:")
+    print("- Window overlap averaging in reconstruction")
+    print("- Stride effects at boundaries")
+    print("- Floating point precision")
+    print("- Edge effects in sliding windows")
