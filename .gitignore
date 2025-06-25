@@ -172,3 +172,6 @@ slurm-*.out
 # MATLAB files (if any MATLAB scripts exist)
 *.asv
 *.m~
+
+# GitHub related files
+.github/
