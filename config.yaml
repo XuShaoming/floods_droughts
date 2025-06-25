@@ -1,0 +1,351 @@
+# LSTM Training Configuration for Flood/Drought Prediction
+# Using YAML anchors for base configuration and inheritance
+#
+# USAGE:
+# ------
+# python train.py                                    # Default experiment
+# python train.py --experiment hourly_short_term     # Specific experiment  
+# python train.py --override training.epochs=50      # Runtime overrides
+#
+# YAML INHERITANCE:
+# -----------------
+# Uses anchors (&BASE_CONFIG) and inheritance (<<: *BASE_CONFIG) for maintainable
+# experiment management. Each experiment inherits from base and overrides specific
+# values for different hydrological scenarios and temporal patterns.
+#
+# EXPERIMENT NAMING CONVENTION:
+# -----------------------------
+# - Temporal scale: hourly_, daily_, seasonal_
+# - Purpose: short_term, flood_events, baseflow, drought  
+# - Domain: urban_, rural_, mountain_ (when applicable)
+# - Method: multitarget, ensemble_ (when applicable)
+#
+# BEST PRACTICES:
+# ---------------
+# - Document hydrological rationale for each experiment
+# - Use appropriate window sizes for watershed response times
+# - Adjust batch sizes based on memory requirements
+# - Test experiments on different years/seasons for robustness
+#
+# PERFORMANCE GUIDELINES:
+# -----------------------
+# Memory usage: short_term (Low) < daily_cycles (Med) < flood_events (Med-High) < baseflow (High)
+# Training time: 30min - 6h depending on experiment complexity and window size
+#
+# EXPERIMENT DESCRIPTIONS:
+# ------------------------
+# hourly_short_term:    Short-term flood prediction (1-12h ahead) - 72h window, 1h stride
+#                       Purpose: Flash floods, immediate runoff response, urban watersheds
+#                       Features: T2, DEWPT, PRECIP, SWDNB, WSPD10, LH
+#                       Model: 64 hidden, 2 layers | Memory: Low | Time: ~30-60min
+#
+# hourly_daily_cycles:  Daily cycle modeling (snowmelt, ET patterns) - 168h window, 6h stride  
+#                       Purpose: Diurnal patterns, snowmelt timing, evapotranspiration cycles
+#                       Features: All available | Model: 96 hidden, 3 layers | Memory: Medium | Time: ~1-2h
+#
+# hourly_flood_events:  Multi-day flood event analysis - 120h window, 12h stride
+#                       Purpose: Full flood lifecycle (rise, peak, recession), event volume
+#                       Features: PRECIP, T2, SWDNB, WSPD10 | Model: 128 hidden, 3 layers | Memory: Med-High | Time: ~2-3h
+#
+# hourly_baseflow:      Baseflow and seasonal trends - 360h window, 24h stride
+#                       Purpose: Long-term patterns, seasonal variations, drought monitoring
+#                       Features: T2, DEWPT, ET, SWDNB | Model: 96 hidden, 2 layers | Memory: High | Time: ~3-6h
+#
+# multitarget:          Multi-task learning (Streamflow + ET) - 30h window, 1h stride
+#                       Purpose: Joint prediction of water/energy fluxes, water balance analysis
+#                       Features: T2, DEWPT, PRECIP, SWDNB, WSPD10, LH | Model: 96 hidden, 2 layers | Memory: Low-Med | Time: ~1-2h
+
+### BASE CONFIG ###
+base_config: &BASE_CONFIG
+  # Data Configuration
+  data:
+    csv_file: "processed/KettleRiverModels_hist_scaled_combined.csv"
+    window_size: 30
+    stride: 1
+    target_cols: ["streamflow"]
+    feature_cols: null
+    
+    # Data splitting
+    train_years: [1980, 2000]
+    val_years: [1975, 1979] 
+    test_years: [2001, 2005]
+    
+    # Data preprocessing
+    scale_features: true
+    scale_targets: true
+
+  # Model Architecture
+  model:
+    hidden_size: 64
+    num_layers: 2
+    dropout: 0.2
+    
+  # Training Configuration
+  training:
+    batch_size: 32
+    learning_rate: 0.001
+    weight_decay: 1e-5
+    epochs: 100
+    
+    # Learning rate scheduler
+    scheduler:
+      type: "ReduceLROnPlateau"
+      patience: 5
+      factor: 0.5
+      min_lr: 1e-6
+    
+    # Early stopping
+    early_stopping:
+      patience: 10
+      min_delta: 1e-6
+    
+    # Gradient clipping
+    grad_clip_norm: 1.0
+
+  # Logging and Saving
+  output:
+    save_dir: "experiments"
+    save_every_n_epochs: 10
+    tensorboard_log: true
+
+  # Reproducibility
+  seed: 42
+
+  # Device
+  device: "auto"
+
+### EXPERIMENTS ###
+
+# Experiment 1: Short-term flood prediction
+# ------------------------------------------
+# Use case: Flash flood warning, immediate runoff response (1-12 hours ahead)
+# Hydrological rationale: 3 days captures storm event development and peak response
+# Optimal for: Urban watersheds, rapid response systems, emergency management
+# Window: 72 hours (3 days) | Stride: 1 hour (preserve all temporal resolution)
+# Features: Precipitation and energy balance variables for runoff modeling
+# Expected performance: High accuracy for peak timing, good for storm events
+hourly_short_term:
+  <<: *BASE_CONFIG
+  data:
+    csv_file: "processed/KettleRiverModels_hist_scaled_combined.csv"
+    window_size: 72     # 3 days of hourly data (captures storm events)
+    stride: 1           # No gaps, every hour
+    target_cols: ["streamflow"]
+    feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+    train_years: [1980, 2000]
+    val_years: [1975, 1979] 
+    test_years: [2001, 2005]
+    scale_features: true
+    scale_targets: true
+  model:
+    hidden_size: 64
+    num_layers: 2
+    dropout: 0.2
+  training:
+    batch_size: 32
+    learning_rate: 0.001
+    weight_decay: 1e-5
+    epochs: 100
+    scheduler:
+      type: "ReduceLROnPlateau"
+      patience: 8
+      factor: 0.5
+      min_lr: 1e-6
+    early_stopping:
+      patience: 15
+      min_delta: 1e-6
+    grad_clip_norm: 1.0
+  output:
+    save_dir: "experiments/hourly_short_term"
+    save_every_n_epochs: 10
+    tensorboard_log: true
+  seed: 42
+  device: "auto"
+
+# Experiment 2: Daily cycle modeling  
+# -----------------------------------
+# Use case: Snowmelt prediction, evapotranspiration cycles, daily operations
+# Hydrological rationale: 1 week captures multiple daily cycles and weekly patterns
+# Optimal for: Natural watersheds, snowmelt-dominated systems, agricultural areas
+# Window: 168 hours (1 week) | Stride: 6 hours (preserves diurnal patterns, reduces redundancy)
+# Features: All available (captures complex daily interactions)
+# Expected performance: Excellent for daily patterns, good for seasonal transitions
+hourly_daily_cycles:
+  <<: *BASE_CONFIG
+  data:
+    csv_file: "processed/KettleRiverModels_hist_scaled_combined.csv"
+    window_size: 168    # 1 week of hourly data (captures daily cycles + weekly patterns)
+    stride: 6           # Every 6 hours (reduces data overlap, faster training)
+    target_cols: ["streamflow"]
+    feature_cols: null  # Use all available features
+    train_years: [1980, 2000]
+    val_years: [1975, 1979] 
+    test_years: [2001, 2005]
+    scale_features: true
+    scale_targets: true
+  model:
+    hidden_size: 96     # Larger for longer sequences
+    num_layers: 3
+    dropout: 0.3
+  training:
+    batch_size: 16      # Smaller batch due to longer sequences
+    learning_rate: 0.0005
+    weight_decay: 1e-5
+    epochs: 150
+    scheduler:
+      type: "CosineAnnealingWarmRestarts"
+      T_0: 20
+      T_mult: 2
+      min_lr: 1e-7
+    early_stopping:
+      patience: 20
+      min_delta: 1e-6
+    grad_clip_norm: 1.0
+  output:
+    save_dir: "experiments/hourly_daily_cycles"
+    save_every_n_epochs: 10
+    tensorboard_log: true
+  seed: 42
+  device: "auto"
+
+# Experiment 3: Multi-day flood event analysis
+# ---------------------------------------------
+# Use case: Flood event characterization, reservoir management, damage assessment
+# Hydrological rationale: 5 days captures full flood lifecycle (rise, peak, recession)
+# Optimal for: Mixed watersheds, flood event studies, water resource management
+# Window: 120 hours (5 days) | Stride: 12 hours (focuses on twice-daily patterns)
+# Features: Flood-relevant variables (precipitation, temperature, solar radiation, wind)
+# Expected performance: Excellent for event volumes, peak flows, recession curves
+hourly_flood_events:
+  <<: *BASE_CONFIG
+  data:
+    csv_file: "processed/KettleRiverModels_hist_scaled_combined.csv"
+    window_size: 120    # 5 days (captures full flood event development)
+    stride: 12          # Every 12 hours (focus on significant changes)
+    target_cols: ["streamflow"]
+    feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
+    train_years: [1980, 2000]
+    val_years: [1975, 1979] 
+    test_years: [2001, 2005]
+    scale_features: true
+    scale_targets: true
+  model:
+    hidden_size: 128    # Larger model for complex flood patterns
+    num_layers: 1
+    dropout: 0.25
+  training:
+    batch_size: 24
+    learning_rate: 0.0005
+    weight_decay: 1e-5
+    epochs: 120
+    scheduler:
+      type: "ReduceLROnPlateau"
+      patience: 10
+      factor: 0.3
+      min_lr: 1e-6
+    early_stopping:
+      patience: 18
+      min_delta: 1e-6
+    grad_clip_norm: 1.0
+  output:
+    save_dir: "experiments/hourly_flood_events"
+    save_every_n_epochs: 10
+    tensorboard_log: true
+  seed: 42
+  device: "auto"
+
+# Experiment 4: Baseflow and seasonal trends
+# -------------------------------------------
+# Use case: Water supply planning, drought monitoring, low-flow statistics
+# Hydrological rationale: 15 days captures seasonal baseflow trends and groundwater response
+# Optimal for: Large river basins, groundwater-fed systems, water resource planning
+# Window: 360 hours (15 days) | Stride: 24 hours (daily sampling, ignores hourly noise)
+# Features: Energy balance variables relevant to evapotranspiration and baseflow
+# Expected performance: Good for seasonal patterns, low-flow periods, drought indices
+hourly_baseflow:
+  <<: *BASE_CONFIG
+  data:
+    csv_file: "processed/KettleRiverModels_hist_scaled_combined.csv"
+    window_size: 360    # 15 days (captures baseflow and seasonal trends)
+    stride: 24          # Daily stride (focus on daily changes, not hourly noise)
+    target_cols: ["streamflow"]
+    feature_cols: ["T2", "DEWPT", "ET", "SWDNB"]  # Features relevant to baseflow
+    train_years: [1980, 2000]
+    val_years: [1975, 1979] 
+    test_years: [2001, 2005]
+    scale_features: true
+    scale_targets: true
+  model:
+    hidden_size: 96
+    num_layers: 2
+    dropout: 0.2
+  training:
+    batch_size: 8       # Very small batch due to long sequences
+    learning_rate: 0.0001
+    weight_decay: 1e-4
+    epochs: 200
+    scheduler:
+      type: "CosineAnnealingLR"
+      T_max: 50
+      min_lr: 1e-8
+    early_stopping:
+      patience: 30
+      min_delta: 1e-7
+    grad_clip_norm: 0.5
+  output:
+    save_dir: "experiments/hourly_baseflow"
+    save_every_n_epochs: 20
+    tensorboard_log: true
+  seed: 42
+  device: "auto"
+
+
+# Experiment 5: Multi-target learning (Streamflow + Evapotranspiration)
+# -----------------------------------------------------------------------
+# Use case: Joint hydrological process modeling, water balance analysis, ecosystem studies
+# Hydrological rationale: 30 hours captures day-night ET cycles and streamflow response
+# Optimal for: Water balance studies, irrigation management, ecohydrology research
+# Window: 30 hours (1.25 days) | Stride: 1 hour (preserves all temporal dynamics)
+# Targets: Streamflow + Evapotranspiration (coupled water/energy processes)
+# Features: Comprehensive meteorological set for both water and energy balance
+# Expected performance: Good for understanding coupled processes, water-energy nexus
+multitarget:
+  <<: *BASE_CONFIG
+  data:
+    csv_file: "processed/KettleRiverModels_hist_scaled_combined.csv"
+    window_size: 30     # 30 hours (captures day-night ET cycles + streamflow response)
+    stride: 1           # Full temporal resolution for coupled processes
+    target_cols: ["streamflow", "ET"]  # Joint prediction of water & energy fluxes
+    feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
+    train_years: [1980, 2000]
+    val_years: [1975, 1979] 
+    test_years: [2001, 2005]
+    scale_features: true
+    scale_targets: true
+  model:
+    hidden_size: 96   # Slightly larger for multi-task
+    num_layers: 2
+    dropout: 0.25
+  training:
+    batch_size: 32
+    learning_rate: 0.001
+    weight_decay: 1e-5
+    epochs: 120
+    scheduler:
+      type: "ReduceLROnPlateau"
+      patience: 8
+      factor: 0.3
+      min_lr: 1e-6
+    early_stopping:
+      patience: 15
+      min_delta: 1e-6
+    grad_clip_norm: 1.0
+  output:
+    save_dir: "experiments/multitarget"
+    save_every_n_epochs: 10
+    tensorboard_log: true
+  seed: 42
+  device: "auto"
+
+# Default experiment to use if none specified
+default_experiment: "hourly_flood_events"

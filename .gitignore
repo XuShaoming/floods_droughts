@@ -42,20 +42,133 @@ htmlcov/
 *.rej
 
 
-# Folders
+# Data folders - large datasets and raw data
 eddev1/
 eddev1_v1/
 zip_data/
-maps/
+flow_data/
 depreciated/
-# Files
-*.zip
-*.npy
-*.xlsx
-*.csv
-*.html
-*.png
+processed/
+
+# Output folders - generated content
+maps/
+imgs/
 **/img/
 **/WBD_07_HU2_Shape/
-flow_data/
-# NHDplus/
+
+# Model artifacts and experiment outputs
+experiments/*/
+!experiments/
+!experiments/*/config.yaml
+!experiments/*/*.md
+models/checkpoints/
+models/saved_models/
+*.pth
+*.pt
+*.pkl
+*.joblib
+
+# Data files - various formats
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.npy
+*.npz
+*.xlsx
+*.xls
+*.csv
+*.tsv
+*.parquet
+*.h5
+*.hdf5
+*.nc
+*.netcdf
+
+# Image and media files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.svg
+*.pdf
+*.eps
+
+# Geospatial data files
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.qix
+*.sbn
+*.sbx
+*.xml
+*.qmd
+
+# HTML and documentation outputs
+*.html
+*.htm
+
+# TensorBoard logs
+runs/
+logs/
+tensorboard_logs/
+lightning_logs/
+
+# Machine learning artifacts
+*.onnx
+*.tflite
+*.pb
+wandb/
+mlruns/
+
+# Jupyter notebook outputs and checkpoints
+*.ipynb_checkpoints/
+.ipynb_checkpoints/
+
+# Large temporary files
+*.tmp
+*.temp
+*.cache
+cache/
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup and versioning files
+*.bak
+*.backup
+*.orig
+*.rej
+*~
+*.swp
+*.swo
+
+# Configuration files with sensitive data
+secrets.yaml
+credentials.json
+.env.local
+.env.production
+
+# SLURM job files (for HPC environments)
+slurm-*.out
+*.sbatch
+*.slurm
+
+# R related files (if any R scripts exist)
+.Rhistory
+.RData
+.Ruserdata
+
+# MATLAB files (if any MATLAB scripts exist)
+*.asv
+*.m~
