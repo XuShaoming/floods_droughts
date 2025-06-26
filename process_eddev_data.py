@@ -1,42 +1,5 @@
 """
-EDDEV (Environmental Data for Drought and Extreme Precipitation) Data Processing Script
-
-Purpose:
-    This script processes meteorological data from the EDDEV1 dataset for watershed analysis.
-    It maps climate data grid points to watersheds and calculates area-weighted meteorological values.
-
-Workflow:
-    1. Loads watershed shapefiles and calculates centroids
-    2. Reads meteorological data from CSV files (T2, DEWPT, PRECIP, SWDNB, WSPD10, LH)
-    3. Finds the nearest grid points to each watershed centroid (using K-Nearest Neighbors)
-    4. Calculates Inverse Distance Weighting (IDW) for climate data interpolation
-    5. Processes data by time period and calculates area-weighted averages
-    6. Outputs processed data to a CSV file with meteorological variables by watershed
-
-Variables:
-    - T2: Temperature at 2m (K)
-    - DEWPT: Dew point temperature (K)
-    - PRECIP: Precipitation (mm)
-    - SWDNB: Downward shortwave radiation at ground surface (W/m²)
-    - WSPD10: Wind speed at 10m (m/s)
-    - LH: Latent heat flux (W/m²)
-
-Notes:
-    - This script uses KNN-IDW interpolation to map gridded climate data to watershed areas
-    - Area weighting ensures proper representation of climate variables across watersheds
-    - Pre-computed nearest grid points can be loaded from a .npy file to speed up processing
-    
-Usage:
-    - To process a specific date range:
-      python process_eddev_data.py --start "1975-01-01" --end "1975-01-31" --basin "KettleR_Watersheds" --scenario "Historical"
-      python process_eddev_data.py --start "2025-05-05" --end "2025-05-7" --basin "KettleR_Watersheds" --scenario "RCP4.5"
-      
-    python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "Historical"
-    python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "RCP4.5"
-    python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "RCP8.5"
-
-    - To process all available data:
-      python process_eddev_data.py --all
+ EDDEV Data Processing Script
 """
 
 import geopandas as gpd
@@ -48,7 +11,7 @@ import pytz
 import argparse
 from datetime import datetime
 
-# Parse command line arguments
+# Parse command line arguments (same as original)
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process EDDEV meteorological data for watersheds')
     group = parser.add_mutually_exclusive_group(required=True)
@@ -59,19 +22,17 @@ def parse_arguments():
     parser.add_argument('--scenario', type=str, default='Historical', help='Climate scenario (default: Historical). Options: Historical, RCP4.5, RCP8.5')
     args = parser.parse_args()
     
-    # Validate that if start is provided, end is also provided
     if args.start and not args.end:
         parser.error("--end is required when --start is specified")
     
     return args
 
-# File paths
+# File paths (same as original)
 base_dir = "eddev1"
 centroid_locations_csv = f"{base_dir}/Lat_Lon_Centroid_Locations.csv"
 meteo_list = ['T2', 'DEWPT', 'PRECIP', 'SWDNB', 'WSPD10', 'LH']
 output_dir = "processed"
 
-# Ensure output directory exists
 os.makedirs(output_dir, exist_ok=True)
 
 def main():
@@ -80,15 +41,13 @@ def main():
     scenario = args.scenario
     watersheds_shp = f"{base_dir}/{basin}_NewMetSeg.shp"
 
-    # Determine time range based on command line arguments
+    # Determine time range and output file (same as original)
     if args.all:
-        # Will determine time range from data after loading
         time_start = None
         time_end = None
         output_file = f"{output_dir}/{basin}_{scenario}_eddev1.csv"
         print("Processing ALL available data...")
     else:
-        # Use user-specified time range
         time_start = f"{args.start} 00:00:00"
         time_end = f"{args.end} 23:00:00"
         date_range_str = f"{args.start}_to_{args.end}"
@@ -96,29 +55,25 @@ def main():
         print(f"Processing time range: {time_start} to {time_end}")
 
     try:
+        # Load spatial data (same as original)
         print("Loading watershed shapefile...")
-        # Load Watershed Shapefile
         watersheds_gdf = gpd.read_file(watersheds_shp)
         print(f"Loaded {len(watersheds_gdf)} watersheds")
         
-        # Reproject to a projected CRS (e.g., EPSG:5070 - USA Contiguous Albers Equal Area)
         watersheds_gdf = watersheds_gdf.to_crs(epsg=5070)
-        # Calculate Centroids for Watersheds
         watersheds_gdf['centroid'] = watersheds_gdf.geometry.centroid
 
-        # Load Centroid Locations CSV
         print("Loading centroid locations...")
         centroid_df = pd.read_csv(centroid_locations_csv)
         print(f"Loaded {len(centroid_df)} centroid locations")
         
-        # Create GeoDataFrame for centroids and reproject to the same projected CRS
         centroid_gdf = gpd.GeoDataFrame(
             centroid_df,
             geometry=gpd.points_from_xy(centroid_df['lon'], centroid_df['lat']),
             crs="EPSG:4326"
         ).to_crs(epsg=5070)
 
-        # Find the Nearest Grid Point for Each Watershed Centroid
+        # Find nearest grid points (same as original)
         print("Finding nearest grid points...")
         if os.path.exists('nearest_grid_point_KettleR_Watersheds.npy'):
             nearest_grid_point = np.load('nearest_grid_point_KettleR_Watersheds.npy')
@@ -135,60 +90,49 @@ def main():
 
         nearest_grid_point_set = set(nearest_grid_point)
         watersheds_gdf['Nearest_Grid_ID'] = nearest_grid_point
-        
         print(f"Number of unique nearest grid points: {len(nearest_grid_point_set)}")
 
-        # Calculate HUC8 area totals
+        # Calculate area totals (same as original)
         print("Calculating Watersheds area totals...")
-        # # HUC8 area calculations if needed
-        # huc8_area_totals = watersheds_gdf.groupby('HUC8')['Area_ac'].sum().reset_index()
-        # watersheds_area_totals = watersheds_area_totals.rename(columns={'Area_ac': 'Area_ac_total'})
-        # print(f"Watershed area totals:")
-        # print(watersheds_area_totals)
-        # # Merge HUC8 area totals back to watersheds_gdf
-        # watersheds_gdf = pd.merge(watersheds_gdf, watersheds_area_totals, on='HUC8', how='left')
-
         watersheds_area_totals = watersheds_gdf['Area_ac'].sum()
-        print(f"Watershed area totals:")
-        print(watersheds_area_totals)
-        # Add watersheds_area_totals to watersheds_gdf
         watersheds_gdf['Area_ac_total'] = watersheds_area_totals
 
-        # Load meteorology data
+        # OPTIMIZATION 1: Load and index meteorological data efficiently
+        print("Loading and indexing meteorological data...")
         meteo_data = {}
         for meteo in meteo_list:
             meteo_csv = f"{base_dir}/WRF-CESM/{scenario}_{meteo}.csv"
             print(f"Loading {meteo} data from {meteo_csv}...")
             meteo_df = pd.read_csv(meteo_csv)
             meteo_df['Date'] = pd.to_datetime(meteo_df['Date'])
+            
+            # OPTIMIZATION: Set datetime as index for fast lookups
+            meteo_df.set_index('Date', inplace=True)
             meteo_data[meteo] = meteo_df
         
-        # Determine the full date range from the data if processing all dates
+        # Determine time range from data if processing all dates
         if args.all:
-            # Find the min and max dates across all meteorological variables
-            min_dates = []
-            max_dates = []
-            for meteo in meteo_list:
-                min_dates.append(meteo_data[meteo]['Date'].min())
-                max_dates.append(meteo_data[meteo]['Date'].max())
-            
+            min_dates = [meteo_data[meteo].index.min() for meteo in meteo_list]
+            max_dates = [meteo_data[meteo].index.max() for meteo in meteo_list]
             time_start = min(min_dates)
             time_end = max(max_dates)
             print(f"Determined data range: {time_start} to {time_end}")
         else:
-            # Convert string dates to datetime objects
             time_start = pd.to_datetime(time_start)
             time_end = pd.to_datetime(time_end)
         
-        # Create time period range
         time_period = pd.date_range(start=time_start, end=time_end, freq='h')
         print(f"Processing {len(time_period)} time steps")
 
-        # Calculate normalized weights for KNN-IDW interpolation
-        print("Calculating KNN-IDW weights for each watershed...")
+        # OPTIMIZATION 2: Pre-compute weights once
+        print("Pre-computing KNN-IDW weights...")
         watershed_weights = {}
         
-        for idx, row in tqdm.tqdm(watersheds_gdf.iterrows(), total=len(watersheds_gdf)):
+        # Convert to numpy arrays for faster processing
+        watershed_ids = watersheds_gdf['SubID'].values
+        watershed_areas = watersheds_gdf['Area_ac'].values
+        
+        for idx, row in tqdm.tqdm(watersheds_gdf.iterrows(), total=len(watersheds_gdf), desc="Computing weights"):
             huc12_id = row['SubID']
             centroid = row['centroid']
             weights = {}
@@ -197,112 +141,77 @@ def main():
                 grid_id_str = str(grid_id)
                 grid_point_geom = centroid_gdf.loc[centroid_gdf['Centroid_ID'] == grid_id, 'geometry'].values[0]
                 distance = centroid.distance(grid_point_geom)
-                # Avoid zero distance by adding a small constant
                 adjusted_distance = max(distance, 1e-6)
-                # Calculate weight as inverse of distance squared
                 weight = 1 / (adjusted_distance ** 2)
                 weights[grid_id_str] = weight
             
-            # Normalize weights to sum to 1
+            # Normalize weights
             total_weight = sum(weights.values())
-            for grid_id in weights:
-                weights[grid_id] = weights[grid_id] / total_weight
-                
+            weights = {k: v/total_weight for k, v in weights.items()}
             watershed_weights[huc12_id] = weights
 
-        # Create a list to store all results
+        # Process time periods
         all_results = []
-
-        # Process each time period with progress bar showing percentage
         print(f"Processing time periods from {time_start} to {time_end}...")
+        
         for i, period in enumerate(tqdm.tqdm(time_period, desc="Processing time periods")):
-            # period_ct = period.tz_localize("UTC").astimezone(timezone)
-            period_ct = period
-            
-            # Process each meteorological variable
             huc8_meteo_values = {}
             
             for meteo in meteo_list:
-                # Filter meteorology data for the current period
-                period_meteo_df = meteo_data[meteo][meteo_data[meteo]['Date'] == period]
+                meteo_df = meteo_data[meteo]
                 
-                if len(period_meteo_df) == 0:
+                # OPTIMIZATION 3: Fast index-based lookup instead of filtering
+                if period not in meteo_df.index:
                     continue
                     
-                # Calculate weighted value for each HUC12 watershed using KNN-IDW
-                huc12_meteo_values = []
+                period_meteo_data = meteo_df.loc[period]
                 
-                for _, huc12_row in watersheds_gdf.iterrows():
-                    huc12_id = huc12_row['SubID']
+                # Calculate weighted values for all watersheds
+                huc12_meteo_values = np.zeros(len(watershed_ids))
+                
+                for j, huc12_id in enumerate(watershed_ids):
                     weights = watershed_weights[huc12_id]
                     
-                    # Calculate weighted value for this HUC12
                     weighted_value = 0
                     for grid_id, weight in weights.items():
-                        if grid_id in period_meteo_df.columns:
-                            grid_value = period_meteo_df[grid_id].values[0]
-                            weighted_value += grid_value * weight
+                        if grid_id in period_meteo_data:
+                            weighted_value += period_meteo_data[grid_id] * weight
                         
-                    huc12_meteo_values.append(weighted_value)
+                    huc12_meteo_values[j] = weighted_value
                 
-                # Store the HUC12 values for area-weighted averaging
-                watersheds_gdf[f'{meteo}_value'] = huc12_meteo_values
-                
-                # Calculate area-weighted average for this HUC8
-                huc8_meteo_values[meteo] = np.sum(watersheds_gdf[f'{meteo}_value'] * watersheds_gdf['Area_ac']) / watersheds_gdf['Area_ac_total'].iloc[0]
+                # OPTIMIZATION 4: Vectorized area-weighted average
+                huc8_meteo_values[meteo] = np.sum(huc12_meteo_values * watershed_areas) / watersheds_area_totals
             
-            # Skip this HUC8 at this time if we don't have all meteo variables
+            # Skip if incomplete data
             if len(huc8_meteo_values) < len(meteo_list):
                 continue
                 
-            # Create a result row for this HUC8 at this time
+            # Create result row
             result_row = {
-                'Datetime': period_ct,
-                'Area_ac_total': watersheds_gdf['Area_ac_total'].iloc[0],
+                'Datetime': period,
+                'Area_ac_total': watersheds_area_totals,
             }
-            
-            # Add meteorological variables
-            for meteo in meteo_list:
-                result_row[meteo] = huc8_meteo_values[meteo]
-                
-            # Add results for this time period
+            result_row.update(huc8_meteo_values)
             all_results.append(result_row)
-            
-            # # Periodically save intermediate results to avoid losing progress on long runs
-            # if args.all and i > 0 and i % 10000 == 0:
-            #     print(f"\nSaving intermediate results after processing {i} of {len(time_period)} time steps...")
-            #     temp_results_df = pd.DataFrame(all_results)
-            #     temp_results_df = temp_results_df.sort_values(['Datetime'])
-            #     column_order = ['Datetime'] + meteo_list + ['Area_ac_total']
-            #     temp_results_df = temp_results_df[column_order]
-            #     temp_output_file = f"{output_file}.partial_{i}"
-            #     temp_results_df.to_csv(temp_output_file, index=False)
-            #     print(f"Intermediate results saved to {temp_output_file}")
         
-        # Create DataFrame from results
+        # Create and save results (same as original)
         results_df = pd.DataFrame(all_results)
         
         if len(results_df) == 0:
             print("No results were generated. Check time range and data availability.")
             return
             
-        # Sort by datetime and HUC8
         results_df = results_df.sort_values(['Datetime'])
-        
-        # Reorder columns to match desired format
         column_order = ['Datetime'] + meteo_list + ['Area_ac_total']
         results_df = results_df[column_order]
         
-        # Save to CSV
         print(f"Saving results to {output_file}...")
         results_df.to_csv(output_file, index=False)
         print(f"Processing complete. Results saved to {output_file}")
         
-        # Print sample of results
         print("\nSample of results:")
         print(results_df.head().to_string())
         
-        # Print summary statistics
         print("\nSummary statistics:")
         print(results_df.describe())
         

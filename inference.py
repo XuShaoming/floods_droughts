@@ -14,7 +14,7 @@ the same YAML configuration system as train.py. It provides:
 7. Results saving and logging
 
 Usage:
-    python inference.py --model-dir experiments/hourly_flood_events --dataset test --analysis
+    python inference.py --model-dir experiments/hourly_flood_events --model-trained best_model.pth --dataset test --analysis
 
 The script automatically detects the experiment configuration and uses the same
 data loading, normalization, and model architecture as during training.
@@ -139,7 +139,7 @@ def calculate_metrics(predictions, targets, scaler=None):
     }
 
 
-def load_model_and_config(model_dir: str) -> Tuple[LSTMModel, Dict, Dict]:
+def load_model_and_config(model_dir: str, model_trained: str) -> Tuple[LSTMModel, Dict, Dict]:
     """
     Load trained model and its configuration from experiment directory.
     
@@ -176,7 +176,8 @@ def load_model_and_config(model_dir: str) -> Tuple[LSTMModel, Dict, Dict]:
     )
     
     # Load trained weights
-    model_path = model_dir / 'best_model.pth'
+    # model_path = model_dir / 'best_model.pth'
+    model_path = model_dir / model_trained
     if not model_path.exists():
         raise FileNotFoundError(f"Model weights not found: {model_path}")
     
@@ -192,9 +193,9 @@ def load_model_and_config(model_dir: str) -> Tuple[LSTMModel, Dict, Dict]:
     model.to(device)
     model.eval()
     
-    print(f"✓ Model loaded from {model_dir}")
-    print(f"✓ Device: {device}")
-    print(f"✓ Model architecture: {model_config}")
+    print(f"Model loaded from {model_dir}")
+    print(f"Device: {device}")
+    print(f"Model architecture: {model_config}")
     
     return model, config, model_config
 
@@ -235,8 +236,8 @@ def make_predictions(model: LSTMModel, data_loader: DataLoader, device: torch.de
     predictions = np.concatenate(all_predictions, axis=0)
     targets = np.concatenate(all_targets, axis=0)
     
-    print(f"✓ {dataset_name} predictions shape: {predictions.shape}")
-    print(f"✓ {dataset_name} targets shape: {targets.shape}")
+    print(f"{dataset_name} predictions shape: {predictions.shape}")
+    print(f"{dataset_name} targets shape: {targets.shape}")
     
     return predictions, targets, all_dates
 
@@ -376,7 +377,7 @@ def plot_windowed_time_series(y_true: np.ndarray, y_pred: np.ndarray,
         os.makedirs(save_dir, exist_ok=True)
         plt.savefig(os.path.join(save_dir, f'{dataset_name}_windowed_timeseries.png'), 
                    dpi=300, bbox_inches='tight')
-        print(f"✓ Windowed time series plot saved: {save_dir}/{dataset_name}_windowed_timeseries.png")
+        print(f"Windowed time series plot saved: {save_dir}/{dataset_name}_windowed_timeseries.png")
     
     plt.show()
 
@@ -428,7 +429,7 @@ def plot_predictions_vs_truth(y_true: np.ndarray, y_pred: np.ndarray,
         os.makedirs(save_dir, exist_ok=True)
         plt.savefig(os.path.join(save_dir, f'{dataset_name}_predictions_analysis.png'), 
                    dpi=300, bbox_inches='tight')
-        print(f"✓ Plot saved: {save_dir}/{dataset_name}_predictions_analysis.png")
+        print(f"Plot saved: {save_dir}/{dataset_name}_predictions_analysis.png")
     
     plt.show()
 
@@ -469,13 +470,13 @@ def reconstruct_time_series(predictions: np.ndarray, targets: np.ndarray,
         targets, all_date_windows, target_names, aggregation_method='mean'
     )
     
-    print(f"✓ Reconstructed time series length: {len(pred_ts)}")
-    print(f"✓ Date range: {pred_ts.index.min()} to {pred_ts.index.max()}")
+    print(f"Reconstructed time series length: {len(pred_ts)}")
+    print(f"Date range: {pred_ts.index.min()} to {pred_ts.index.max()}")
     
     return pred_ts, target_ts
 
 
-def run_inference(model_dir: str, dataset_names: List[str] = None) -> Dict:
+def run_inference(model_dir: str, model_trained: str, dataset_names: List[str] = None) -> Dict:
     """
     Pure inference function - load model and generate predictions without analysis.
     
@@ -487,7 +488,7 @@ def run_inference(model_dir: str, dataset_names: List[str] = None) -> Dict:
         Dictionary containing raw inference results for each dataset
     """
     # Load model and configuration
-    model, config, model_config = load_model_and_config(model_dir)
+    model, config, model_config = load_model_and_config(model_dir, model_trained)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # Initialize data loader with same configuration as training
@@ -558,7 +559,7 @@ def run_inference(model_dir: str, dataset_names: List[str] = None) -> Dict:
             'model_config': model_config          # Model architecture info
         }
         
-        print(f"✓ Inference completed for {dataset_name}")
+        print(f"Inference completed for {dataset_name}")
         print(f"  - Windowed predictions shape: {pred_denorm.shape}")
         print(f"  - Time series length: {len(pred_ts)}")
         print(f"  - Date range: {pred_ts.index.min()} to {pred_ts.index.max()}")
@@ -641,8 +642,8 @@ def reconstruct_time_series_from_windows(predictions: np.ndarray, targets: np.nd
         targets, date_windows, target_names, aggregation_method='mean'
     )
     
-    print(f"✓ Reconstructed time series length: {len(pred_ts)}")
-    print(f"✓ Date range: {pred_ts.index.min()} to {pred_ts.index.max()}")
+    print(f"Reconstructed time series length: {len(pred_ts)}")
+    print(f"Date range: {pred_ts.index.min()} to {pred_ts.index.max()}")
     
     return pred_ts, target_ts
 
@@ -722,13 +723,13 @@ def analyze_inference_results(inference_results: Dict, save_dir: Optional[str] =
         if save_dir:
             combined_ts = pd.merge(pred_ts, target_ts, left_index=True, right_index=True, how='inner')
             combined_ts.to_csv(save_dir / f'{dataset_name}_reconstructed_timeseries.csv')
-            print(f"✓ Time series saved: {save_dir}/{dataset_name}_reconstructed_timeseries.csv")
+            print(f"Time series saved: {save_dir}/{dataset_name}_reconstructed_timeseries.csv")
     
     # Save all metrics
     if save_dir:
         with open(save_dir / 'all_metrics.json', 'w') as f:
             json.dump(all_metrics, f, indent=2)
-        print(f"✓ All metrics saved: {save_dir}/all_metrics.json")
+        print(f"All metrics saved: {save_dir}/all_metrics.json")
     
     # Print summary
     print_analysis_summary(all_metrics)
@@ -840,7 +841,7 @@ def plot_time_series_reconstruction(pred_ts: pd.DataFrame, target_ts: pd.DataFra
             filename_suffix = f"_{start_date or 'start'}_to_{end_date or 'end'}"
         plt.savefig(os.path.join(save_dir, f'{dataset_name}_time_series_reconstruction{filename_suffix}.png'), 
                    dpi=300, bbox_inches='tight')
-        print(f"✓ Time series plot saved: {save_dir}/{dataset_name}_time_series_reconstruction{filename_suffix}.png")
+        print(f"Time series plot saved: {save_dir}/{dataset_name}_time_series_reconstruction{filename_suffix}.png")
     
     plt.show()
 
@@ -934,6 +935,8 @@ def main():
     
     parser.add_argument('--model-dir', type=str, required=True,
                        help='Path to the model directory (e.g., experiments/hourly_flood_events)')
+    parser.add_argument('--model-trained', type=str, default='best_model.pth', 
+                       help='Name of the trained model file (default: best_model.pth)')
     parser.add_argument('--dataset', type=str, choices=['train', 'val', 'test'], default=None,
                        help='Evaluate only specific dataset (default: all datasets)')
     parser.add_argument('--analysis', action='store_true',
@@ -956,13 +959,13 @@ def main():
         dataset_names = [args.dataset]
     
     # Set up save directory if needed
-    save_dir = Path(args.model_dir) / 'inference_results'
+    save_dir = Path(args.model_dir) / f'{Path(args.model_trained).stem}_results'
     
     print(f"\n{'='*60}")
     print("STEP 1: RUNNING PURE INFERENCE")
     print(f"{'='*60}")
     
-    inference_results = run_inference(args.model_dir, dataset_names)
+    inference_results = run_inference(args.model_dir, args.model_trained, dataset_names)
     
     # Save inference results if requested
     if save_dir:
@@ -970,9 +973,9 @@ def main():
         
         # Save inference results as pickle for later analysis
         import pickle
-        with open(save_dir / 'inference_results.pkl', 'wb') as f:
+        with open(save_dir / f'inference_results_{args.dataset}.pkl', 'wb') as f:
             pickle.dump(inference_results, f)
-        print(f"✓ Inference results saved: {save_dir}/inference_results.pkl")
+        print(f"Inference results saved: {save_dir}/inference_results_{args.dataset}.pkl")
     
     # Step 2: Run analysis (unless inference-only mode)
     if args.analysis:
@@ -981,14 +984,14 @@ def main():
         print(f"{'='*60}")
 
         # Load existing inference results
-        inference_results_path = Path(args.model_dir) / 'inference_results' / 'inference_results.pkl'
+        inference_results_path = Path(args.model_dir) / f'{Path(args.model_trained).stem}_results' / f'inference_results_{args.dataset}.pkl'
         if not inference_results_path.exists():
             raise FileNotFoundError(f"Inference results not found: {inference_results_path}")
         
         import pickle
         with open(inference_results_path, 'rb') as f:
             inference_results = pickle.load(f)
-        print(f"✓ Loaded existing inference results from: {inference_results_path}")
+        print(f"Loaded existing inference results from: {inference_results_path}")
 
         
         all_metrics = analyze_inference_results(inference_results, save_dir)

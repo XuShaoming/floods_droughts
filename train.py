@@ -492,6 +492,7 @@ def main():
     
     # Create save directory
     save_dir = output_config['save_dir']
+    save_dir = os.path.join(save_dir, args.experiment)
     os.makedirs(save_dir, exist_ok=True)
     
     # Set device
@@ -740,26 +741,6 @@ def main():
     if writer is not None:
         writer.close()
     print(f"\nTraining completed! Results saved to {save_dir}")
-    
-    # Print usage examples
-    print("\n" + "="*60)
-    print("YAML-BASED TRAINING COMPLETED")
-    print("="*60)
-    print("✓ All hyperparameters loaded from YAML configuration")
-    print("✓ No command-line arguments needed for hyperparameters")
-    print("✓ Fully reproducible with version-controlled config files")
-    print("\n" + "="*60)
-    print("USAGE EXAMPLES:")
-    print("="*60)
-    print("1. Use default config.yaml:")
-    print("   python train.py")
-    print("\n2. Use custom config file:")
-    print("   python train.py --config my_config.yaml")
-    print("\n3. Edit config.yaml to change hyperparameters")
-    print("   - No command-line arguments needed")
-    print("   - All settings in one file")
-    print("   - Easy to share and version control")
-    print("="*60)
 
 
 if __name__ == "__main__":

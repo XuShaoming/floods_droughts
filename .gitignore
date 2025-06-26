@@ -49,6 +49,7 @@ zip_data/
 flow_data/
 depreciated/
 processed/
+processed_bak/
 
 # Output folders - generated content
 maps/
