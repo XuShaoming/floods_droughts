@@ -732,7 +732,7 @@ def analyze_inference_results(inference_results: Dict, save_dir: Optional[str] =
         print(f"All metrics saved: {save_dir}/all_metrics.json")
     
     # Print summary
-    print_analysis_summary(all_metrics)
+    print_analysis_summary(all_metrics, str(save_dir) if save_dir else None)
     
     return all_metrics
 
@@ -899,33 +899,67 @@ def calculate_timeseries_metrics(pred_ts: pd.DataFrame, target_ts: pd.DataFrame,
     return metrics
 
 
-def print_analysis_summary(all_metrics: Dict) -> None:
-    """Print a summary of all analysis results."""
-    print(f"\n{'='*60}")
-    print("ANALYSIS SUMMARY")
-    print(f"{'='*60}")
+def print_analysis_summary(all_metrics: Dict, save_dir: Optional[str] = None) -> None:
+    """Print and save a summary of all analysis results."""
+    
+    # Create the summary text
+    summary_lines = []
+    summary_lines.append(f"{'='*60}")
+    summary_lines.append("ANALYSIS SUMMARY")
+    summary_lines.append(f"{'='*60}")
     
     for dataset_name, dataset_metrics in all_metrics.items():
-        print(f"\n{dataset_name.upper()} Dataset:")
+        summary_lines.append(f"\n{dataset_name.upper()} Dataset:")
         
         # Print windowed metrics if available
         if 'windowed' in dataset_metrics:
             windowed = dataset_metrics['windowed']
-            print(f"  Windowed Data:")
-            print(f"    R²:    {windowed.get('r2', 'N/A'):.4f}")
-            print(f"    RMSE:  {windowed.get('rmse', 'N/A'):.2f}")
-            print(f"    NSE:   {windowed.get('nse', 'N/A'):.4f}")
-            print(f"    KGE:   {windowed.get('kge', 'N/A'):.4f}")
+            summary_lines.append(f"  Windowed Data:")
+            summary_lines.append(f"    R²:    {windowed.get('r2', 'N/A'):.4f}")
+            summary_lines.append(f"    RMSE:  {windowed.get('rmse', 'N/A'):.2f}")
+            summary_lines.append(f"    NSE:   {windowed.get('nse', 'N/A'):.4f}")
+            summary_lines.append(f"    KGE:   {windowed.get('kge', 'N/A'):.4f}")
         
         # Print time series metrics if available
         if 'timeseries' in dataset_metrics:
             ts_metrics = dataset_metrics['timeseries']
             for var_name, var_metrics in ts_metrics.items():
-                print(f"  Time Series ({var_name}):")
-                print(f"    R²:    {var_metrics.get('r2', 'N/A'):.4f}")
-                print(f"    RMSE:  {var_metrics.get('rmse', 'N/A'):.2f}")
-                print(f"    NSE:   {var_metrics.get('nse', 'N/A'):.4f}")
-                print(f"    KGE:   {var_metrics.get('kge', 'N/A'):.4f}")
+                summary_lines.append(f"  Time Series ({var_name}):")
+                summary_lines.append(f"    R²:    {var_metrics.get('r2', 'N/A'):.4f}")
+                summary_lines.append(f"    RMSE:  {var_metrics.get('rmse', 'N/A'):.2f}")
+                summary_lines.append(f"    NSE:   {var_metrics.get('nse', 'N/A'):.4f}")
+                summary_lines.append(f"    KGE:   {var_metrics.get('kge', 'N/A'):.4f}")
+    
+    # Print to console
+    for line in summary_lines:
+        print(line)
+    
+    # Save to file if save_dir provided
+    if save_dir:
+        save_dir_path = Path(save_dir)
+        save_dir_path.mkdir(exist_ok=True)
+        
+        # Use fixed filename and append mode
+        summary_file = save_dir_path / 'analysis_summary.txt'
+        
+        # Add timestamp header for this run
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        with open(summary_file, 'a') as f:
+            # Add separator and timestamp if file already exists
+            if summary_file.exists() and summary_file.stat().st_size > 0:
+                f.write('\n' + '='*60 + '\n')
+                f.write(f'NEW ANALYSIS RUN - {timestamp}\n')
+                f.write('='*60 + '\n')
+            else:
+                f.write(f'ANALYSIS RUN - {timestamp}\n')
+            
+            for line in summary_lines:
+                f.write(line + '\n')
+            f.write('\n')  # Add extra newline at the end
+        
+        print(f"\nAnalysis summary appended to: {summary_file}")
 
 def main():
     """
@@ -994,7 +1028,7 @@ def main():
         print(f"Loaded existing inference results from: {inference_results_path}")
 
         
-        all_metrics = analyze_inference_results(inference_results, save_dir)
+        all_metrics = analyze_inference_results(inference_results, str(save_dir))
         
         print(f"\n{'='*60}")
         print("PIPELINE COMPLETED SUCCESSFULLY")

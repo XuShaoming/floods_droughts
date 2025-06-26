@@ -330,25 +330,14 @@ def save_model(model, optimizer, epoch, loss, model_config, save_path):
 
 def plot_training_history(train_losses, val_losses, save_dir):
     """Plot and save training history."""
-    plt.figure(figsize=(12, 5))
+    plt.figure(figsize=(10, 6))
     
     # Plot overall losses
-    plt.subplot(1, 2, 1)
     plt.plot(train_losses, label='Training Loss', color='blue')
     plt.plot(val_losses, label='Validation Loss', color='red')
     plt.title('Training and Validation Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.legend()
-    plt.grid(True)
-    
-    # Plot learning rate if available
-    plt.subplot(1, 2, 2)
-    plt.plot(train_losses, label='Training Loss', color='blue')
-    plt.title('Training Loss (Log Scale)')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss (log)')
-    plt.yscale('log')
     plt.legend()
     plt.grid(True)
     
