@@ -29,7 +29,7 @@ def parse_arguments():
                         help='Basin name (e.g., KettleRiverModels, BlueEarth, LeSueur)')
     parser.add_argument('--scenario', type=str, required=True, 
                         help='Climate scenario. For flow: hist_scaled, RCP4.5, RCP8.5. For EDDEV: Historical, RCP4.5, RCP8.5')
-    parser.add_argument('--output_dir', type=str, default='processed',
+    parser.add_argument('--output_dir', type=str, default='data_processed',
                         help='Directory to save combined data (default: processed)')
     return parser.parse_args()
 
@@ -51,26 +51,41 @@ def find_matching_files(basin, scenario, processed_dir):
     tuple
         (flow_file, eddev_file) paths
     """
+    # # Map flow scenario names to EDDEV scenario names
+    # scenario_map = {
+    #     'hist_scaled': 'Historical',
+    #     'RCP4.5': 'RCP4.5',
+    #     'RCP8.5': 'RCP8.5'
+    # }
+
+    # basin_map = {
+    #     'KettleRiverModels': 'KettleR_Watersheds'
+    # }
+
     # Map flow scenario names to EDDEV scenario names
     scenario_map = {
-        'hist_scaled': 'Historical',
+        'hist_scaled': 'hist_scaled',
         'RCP4.5': 'RCP4.5',
         'RCP8.5': 'RCP8.5'
     }
 
     basin_map = {
-        'KettleRiverModels': 'KettleR_Watersheds'
+        'Watonwan': 'Watonwan',
+        'LeSueur': 'LeSueur',
+        'KettleRiverModels': 'KettleRiverModels',
+        'BlueEarth': 'BlueEarth',
+        
     }
     
     # For EDDEV data, we need to map the scenario name
     eddev_scenario = scenario_map.get(scenario, scenario)
     
     # Find flow data file
-    flow_file_pattern = str(processed_dir / f"{basin}_{scenario}_flow.csv")
+    flow_file_pattern = str(processed_dir / basin / f"{basin}_{scenario}_flow.csv")
     flow_files = glob.glob(flow_file_pattern)
     
     # Find EDDEV data file
-    eddev_pattern = str(processed_dir / f"{basin_map.get(basin, basin)}_{eddev_scenario}_eddev1.csv")
+    eddev_pattern = str(processed_dir / basin / f"{basin_map.get(basin, basin)}_{eddev_scenario}_eddev1.csv")
     eddev_files = glob.glob(eddev_pattern)
     
     # If no exact match for EDDEV, try alternative basin name formatting
@@ -188,8 +203,7 @@ if __name__ == "__main__":
         combined_df = combine_data(flow_file, eddev_file)
         
         # Create output filename
-        scenario_suffix = args.scenario
-        output_file = processed_dir / f"{args.basin}_{scenario_suffix}_combined.csv"
+        output_file = processed_dir / f"{args.basin}_{args.scenario}_combined.csv"
         
         # Save combined data
         print(f"Saving combined data to {output_file}")

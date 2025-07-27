@@ -11,6 +11,26 @@ import pytz
 import argparse
 from datetime import datetime
 
+# File paths (same as original)
+base_dir = os.path.join("data","eddev1")
+centroid_locations_csv = f"{base_dir}/Lat_Lon_Centroid_Locations.csv"
+meteo_list = ['T2', 'DEWPT', 'PRECIP', 'SWDNB', 'WSPD10', 'LH']
+output_dir = "data_processed"
+os.makedirs(output_dir, exist_ok=True)
+
+basin_names ={
+    'WatonwanR_Watersheds': 'Watonwan',
+    'LeSueurR_Watersheds': 'LeSueur',
+    'KettleR_Watersheds': 'KettleRiverModels',
+    'BlueEarthR_Watersheds': 'BlueEarth'
+}
+
+scenario_names = {
+    'Historical': 'hist_scaled',
+    'RCP4.5': 'RCP4.5',
+    'RCP8.5': 'RCP8.5'
+}
+
 # Parse command line arguments (same as original)
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process EDDEV meteorological data for watersheds')
@@ -27,14 +47,6 @@ def parse_arguments():
     
     return args
 
-# File paths (same as original)
-base_dir = "eddev1"
-centroid_locations_csv = f"{base_dir}/Lat_Lon_Centroid_Locations.csv"
-meteo_list = ['T2', 'DEWPT', 'PRECIP', 'SWDNB', 'WSPD10', 'LH']
-output_dir = "processed"
-
-os.makedirs(output_dir, exist_ok=True)
-
 def main():
     args = parse_arguments()
     basin = args.basin
@@ -45,13 +57,13 @@ def main():
     if args.all:
         time_start = None
         time_end = None
-        output_file = f"{output_dir}/{basin}_{scenario}_eddev1.csv"
+        output_file = f"{output_dir}/{basin_names[basin]}/{basin_names[basin]}_{scenario_names[scenario]}_eddev1.csv"
         print("Processing ALL available data...")
     else:
         time_start = f"{args.start} 00:00:00"
         time_end = f"{args.end} 23:00:00"
         date_range_str = f"{args.start}_to_{args.end}"
-        output_file = f"{output_dir}/{basin}_{scenario}_eddev1_{date_range_str}.csv"
+        output_file = f"{output_dir}/{basin_names[basin]}/{basin_names[basin]}_{scenario_names[scenario]}_eddev1_{date_range_str}.csv"
         print(f"Processing time range: {time_start} to {time_end}")
 
     try:
@@ -75,9 +87,10 @@ def main():
 
         # Find nearest grid points (same as original)
         print("Finding nearest grid points...")
-        if os.path.exists('nearest_grid_point_KettleR_Watersheds.npy'):
-            nearest_grid_point = np.load('nearest_grid_point_KettleR_Watersheds.npy')
-            print(f"Loaded existing nearest grid points from file")
+        nearest_grid_point_path = os.path.join(output_dir, basin_names[basin], f'nearest_grid_point_{basin_names[basin]}.npy')
+        if os.path.exists(nearest_grid_point_path):
+            nearest_grid_point = np.load(nearest_grid_point_path)
+            print(f"Loaded existing nearest grid points from file {nearest_grid_point_path}")
         else:
             print("Computing nearest grid points (this may take a while)...")
             nearest_grid_point = []
@@ -86,7 +99,7 @@ def main():
                 nearest_idx = distances.idxmin()
                 nearest_grid_point.append(centroid_df.loc[nearest_idx, 'Centroid_ID'])
             nearest_grid_point = np.array(nearest_grid_point)
-            np.save('nearest_grid_point_KettleR_Watersheds.npy', nearest_grid_point)
+            np.save(nearest_grid_point_path, nearest_grid_point)
 
         nearest_grid_point_set = set(nearest_grid_point)
         watersheds_gdf['Nearest_Grid_ID'] = nearest_grid_point

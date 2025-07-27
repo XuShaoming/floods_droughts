@@ -21,7 +21,7 @@ def process_flow_data(basin_name, scenario):
         Merged dataframe with hourly flow data and interpolated daily output data
     """
     # Define file paths
-    flow_data_dir = Path('/home/kumarv/xu000114/floods_droughts/flow_data')
+    flow_data_dir = Path('/home/kumarv/xu000114/floods_droughts/data/flow_data')
     hourly_file = flow_data_dir / f"{basin_name}_outlet_{scenario}_FLOW.csv"
     daily_file = flow_data_dir / f"{basin_name}_outlet_{scenario}_Daily_outputs.csv"
     
@@ -85,12 +85,13 @@ def process_flow_data(basin_name, scenario):
 
 if __name__ == "__main__":
     # Create processed directory if it doesn't exist
-    processed_dir = Path('/home/kumarv/xu000114/floods_droughts/processed')
+    processed_dir = Path('/home/kumarv/xu000114/floods_droughts/data_processed')
     processed_dir.mkdir(exist_ok=True)
     
     # Process data for each basin and scenario
-    # basins = ['KettleRiverModels', 'BlueEarth', 'LeSueur']
-    basins = ['KettleRiverModels']
+    # basins = ['KettleRiverModels', 'BlueEarth', 'LeSueur', 'Watonwan']
+    # basins = ['KettleRiverModels']
+    basins = ['BlueEarth', 'LeSueur', 'Watonwan']
     scenarios = ['hist_scaled', 'RCP4.5', 'RCP8.5']
     
     # Dictionary to store all processed data    
@@ -100,7 +101,8 @@ if __name__ == "__main__":
             try:
                 processed_df = process_flow_data(basin, scenario)
                 if processed_df is not None:
-                    output_file = processed_dir / f"{basin}_{scenario}_flow.csv"
+                    output_file = processed_dir / basin / f"{basin}_{scenario}_flow.csv"
+                    output_file.parent.mkdir(exist_ok=True)
                     processed_df.to_csv(output_file, index=False)
                     print(f"Saved processed data to {output_file}")
             except Exception as e:
