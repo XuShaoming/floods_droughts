@@ -63,11 +63,11 @@ def load_config(config_path):
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
     
-    # Validate required sections
-    required_sections = ['data', 'model', 'training', 'output']
-    for section in required_sections:
-        if section not in config:
-            raise ValueError(f"Missing required section '{section}' in config file")
+    # Validate required keys for flattened config
+    required_keys = ['csv_file', 'hidden_size', 'batch_size', 'learning_rate', 'epochs', 'save_dir']
+    for key in required_keys:
+        if key not in config:
+            raise ValueError(f"Missing required key '{key}' in config file")
     
     return config
 
@@ -451,7 +451,7 @@ def reconstruct_time_series(predictions: np.ndarray, targets: np.ndarray,
     """
     print("Reconstructing time series from windowed predictions using dataloader method...")
     
-    target_names = config['data']['target_cols']
+    target_names = config['target_cols']
     
     # Flatten the dates list (each element is a batch of date windows)
     all_date_windows = []
@@ -492,19 +492,18 @@ def run_inference(model_dir: str, model_trained: str, dataset_names: List[str] =
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # Initialize data loader with same configuration as training
-    data_config = config['data']
     data_loader = FloodDroughtDataLoader(
-        csv_file=data_config['csv_file'],
-        window_size=data_config['window_size'],
-        stride=data_config['stride'],
-        target_col=data_config['target_cols'],
-        feature_cols=data_config['feature_cols'],
-        train_years=tuple(data_config['train_years']),
-        val_years=tuple(data_config['val_years']),
-        test_years=tuple(data_config['test_years']),
+        csv_file=config['csv_file'],
+        window_size=config['window_size'],
+        stride=config['stride'],
+        target_col=config['target_cols'],
+        feature_cols=config['feature_cols'],
+        train_years=tuple(config['train_years']),
+        val_years=tuple(config['val_years']),
+        test_years=tuple(config['test_years']),
         batch_size=32,  # Use smaller batch size for inference
-        scale_features=data_config.get('scale_features', True),
-        scale_targets=data_config.get('scale_targets', True),
+        scale_features=config.get('scale_features', True),
+        scale_targets=config.get('scale_targets', True),
         many_to_many=True,
         random_seed=42
     )
@@ -628,7 +627,7 @@ def reconstruct_time_series_from_windows(predictions: np.ndarray, targets: np.nd
     """
     print("Reconstructing time series from windowed predictions...")
     
-    target_names = config['data']['target_cols']
+    target_names = config['target_cols']
     
     print(f"Total windows: {len(predictions)}")
     print(f"Total date windows: {len(date_windows)}")

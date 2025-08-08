@@ -56,7 +56,7 @@ class FloodDroughtDataLoader:
     - Support for both many-to-one and many-to-many sequence modeling
     """
     def __init__(self, 
-                 csv_file: str = 'processed/KettleRiverModels_hist_scaled_combined.csv', 
+                 csv_file: str = 'data_processed/KettleRiverModels_hist_scaled_combined.csv', 
                  window_size: int = 30, 
                  stride: int = 1,
                  target_col: Optional[List[str]] = None,
