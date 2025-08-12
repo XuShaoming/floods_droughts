@@ -457,20 +457,15 @@ def main():
                 raise ValueError("No valid experiments found in config file")
     
     # Validate the selected config
-    required_sections = ['data', 'model', 'training', 'output']
-    for section in required_sections:
-        if section not in config:
-            raise ValueError(f"Missing required section '{section}' in experiment configuration")
+    required_keys = ['csv_file', 'hidden_size', 'batch_size', 'learning_rate', 'epochs', 'save_dir']
+    for key in required_keys:
+        if key not in config:
+            raise ValueError(f"Missing required key '{key}' in experiment configuration")
     
     print("Configuration loaded:")
     print(yaml.dump(config, default_flow_style=False, indent=2))
     
-    # Extract configuration sections for easier access
-    data_config = config['data']
-    model_config = config['model']
-    training_config = config['training']
-    output_config = config['output']
-    
+    # Extract configuration values (now flattened)
     # Use command line seed if provided, otherwise use config seed, otherwise default to 42
     if hasattr(args, 'seed') and args.seed is not None:
         seed = args.seed
@@ -480,7 +475,7 @@ def main():
         print(f"Using seed from config: {seed}")
     
     # Create save directory
-    save_dir = output_config['save_dir']
+    save_dir = config['save_dir']
     save_dir = os.path.join(save_dir, args.experiment)
     os.makedirs(save_dir, exist_ok=True)
     
@@ -498,17 +493,17 @@ def main():
     # Initialize data loader
     print("Initializing data loader...")
     data_loader = FloodDroughtDataLoader(
-        csv_file=data_config['csv_file'],
-        window_size=data_config['window_size'],
-        stride=data_config['stride'],
-        target_col=data_config['target_cols'],
-        feature_cols=data_config['feature_cols'],
-        train_years=tuple(data_config['train_years']),
-        val_years=tuple(data_config['val_years']),
-        test_years=tuple(data_config['test_years']),
-        batch_size=training_config['batch_size'],
-        scale_features=data_config.get('scale_features', True),
-        scale_targets=data_config.get('scale_targets', True),
+        csv_file=config['csv_file'],
+        window_size=config['window_size'],
+        stride=config['stride'],
+        target_col=config['target_cols'],
+        feature_cols=config['feature_cols'],
+        train_years=tuple(config['train_years']),
+        val_years=tuple(config['val_years']),
+        test_years=tuple(config['test_years']),
+        batch_size=config['batch_size'],
+        scale_features=config.get('scale_features', True),
+        scale_targets=config.get('scale_targets', True),
         many_to_many=True,  # Many-to-many prediction
         random_seed=seed
     )
@@ -527,15 +522,15 @@ def main():
     
     print(f"Input size: {input_size}")
     print(f"Output size: {output_size}")
-    print(f"Window size: {data_config['window_size']}")
+    print(f"Window size: {config['window_size']}")
     
     # Initialize model
     model = LSTMModel(
         input_size=input_size,
-        hidden_size=model_config['hidden_size'],
-        num_layers=model_config['num_layers'],
+        hidden_size=config['hidden_size'],
+        num_layers=config['num_layers'],
         output_size=output_size,
-        dropout=model_config['dropout']
+        dropout=config['dropout']
     ).to(device)
     
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
@@ -544,11 +539,11 @@ def main():
     criterion = nn.MSELoss()
     
     # Ensure weight_decay is properly converted to float
-    weight_decay = training_config.get('weight_decay', 1e-5)
+    weight_decay = config.get('weight_decay', 1e-5)
     if isinstance(weight_decay, str):
         weight_decay = float(weight_decay)
     
-    learning_rate = training_config['learning_rate']
+    learning_rate = config['learning_rate']
     if isinstance(learning_rate, str):
         learning_rate = float(learning_rate)
     
@@ -559,19 +554,24 @@ def main():
         weight_decay=weight_decay
     )
     
-    # Learning rate scheduler
-    scheduler = get_scheduler(optimizer, training_config.get('scheduler', {}))
+    # Learning rate scheduler - build config dict from flattened parameters
+    scheduler_config = {
+        'type': config.get('scheduler_type', 'ReduceLROnPlateau'),
+        'patience': config.get('scheduler_patience', 5),
+        'factor': config.get('scheduler_factor', 0.5),
+        'min_lr': config.get('scheduler_min_lr', 1e-6)
+    }
+    scheduler = get_scheduler(optimizer, scheduler_config)
     
     # Early stopping
-    early_stopping_config = training_config.get('early_stopping', {})
     early_stopping = EarlyStopping(
-        patience=int(early_stopping_config.get('patience', 10)),
-        min_delta=float(early_stopping_config.get('min_delta', 1e-6))
+        patience=int(config.get('early_stopping_patience', 10)),
+        min_delta=float(config.get('early_stopping_min_delta', 1e-6))
     )
     
     
     # TensorBoard logging
-    if output_config.get('tensorboard_log', True):
+    if config.get('tensorboard_log', True):
         writer = SummaryWriter(os.path.join(save_dir, 'logs'))
     else:
         writer = None
@@ -583,12 +583,12 @@ def main():
     # Model configuration for saving
     model_save_config = {
         'input_size': input_size,
-        'hidden_size': model_config['hidden_size'],
-        'num_layers': model_config['num_layers'],
+        'hidden_size': config['hidden_size'],
+        'num_layers': config['num_layers'],
         'output_size': output_size,
-        'dropout': model_config['dropout'],
-        'window_size': data_config['window_size'],
-        'target_cols': data_config['target_cols'],
+        'dropout': config['dropout'],
+        'window_size': config['window_size'],
+        'target_cols': config['target_cols'],
         'feature_cols': data_loader.get_feature_names()
     }
     
@@ -602,19 +602,19 @@ def main():
     print("Starting training...")
     best_val_loss = float('inf')
     
-    for epoch in range(training_config['epochs']):
-        print(f"\nEpoch {epoch + 1}/{training_config['epochs']}")
+    for epoch in range(config['epochs']):
+        print(f"\nEpoch {epoch + 1}/{config['epochs']}")
         print("-" * 50)
         
         # Train
         train_loss, train_target_losses = train_epoch(
-            model, train_loader, criterion, optimizer, device, data_config['target_cols'],
-            grad_clip_norm=training_config.get('grad_clip_norm', 1.0)
+            model, train_loader, criterion, optimizer, device, config['target_cols'],
+            grad_clip_norm=config.get('grad_clip_norm', 1.0)
         )
         
         # Validate
         val_loss, val_target_losses = validate_epoch(
-            model, val_loader, criterion, device, data_config['target_cols']
+            model, val_loader, criterion, device, config['target_cols']
         )
         
         # Update learning rate
@@ -631,7 +631,7 @@ def main():
             writer.add_scalar('Learning_Rate', optimizer.param_groups[0]['lr'], epoch)
             
             # Log individual target losses
-            for target_name in data_config['target_cols']:
+            for target_name in config['target_cols']:
                 if target_name in train_target_losses:
                     writer.add_scalar(f'Train_Loss/{target_name}', train_target_losses[target_name], epoch)
                     writer.add_scalar(f'Val_Loss/{target_name}', val_target_losses[target_name], epoch)
@@ -645,9 +645,9 @@ def main():
         print(f"Val Loss: {val_loss:.6f}")
         print(f"Learning Rate: {optimizer.param_groups[0]['lr']:.8f}")
         
-        if len(data_config['target_cols']) > 1:
+        if len(config['target_cols']) > 1:
             print("Individual target losses:")
-            for target_name in data_config['target_cols']:
+            for target_name in config['target_cols']:
                 if target_name in train_target_losses:
                     print(f"  {target_name} - Train: {train_target_losses[target_name]:.6f}, "
                           f"Val: {val_target_losses[target_name]:.6f}")
@@ -661,7 +661,7 @@ def main():
             )
         
         # Save latest model
-        save_every_n = output_config.get('save_every_n_epochs', 10)
+        save_every_n = config.get('save_every_n_epochs', 10)
         if (epoch + 1) % save_every_n == 0:
             save_model(
                 model, optimizer, epoch, val_loss, model_save_config,

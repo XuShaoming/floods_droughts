@@ -30,55 +30,49 @@
 ### BASE CONFIG ###
 base_config: &BASE_CONFIG
   # Data Configuration
-  data:
-    csv_file: "processed/KettleRiverModels_hist_scaled_combined.csv"
-    window_size: 30
-    stride: 1
-    target_cols: ["streamflow"]
-    feature_cols: null
-    
-    # Data splitting
-    train_years: [1980, 2000]
-    val_years: [1975, 1979] 
-    test_years: [2001, 2005]
-    
-    # Data preprocessing
-    scale_features: true
-    scale_targets: true
+  csv_file: "data_processed/KettleRiverModels_hist_scaled_combined.csv"
+  window_size: 30
+  stride: 1
+  target_cols: ["streamflow"]
+  feature_cols: null
+  
+  # Data splitting
+  train_years: [1980, 2000]
+  val_years: [1975, 1979] 
+  test_years: [2001, 2005]
+  
+  # Data preprocessing
+  scale_features: true
+  scale_targets: true
 
   # Model Architecture
-  model:
-    hidden_size: 64
-    num_layers: 2
-    dropout: 0.2
-    
+  hidden_size: 64
+  num_layers: 2
+  dropout: 0.2
+  
   # Training Configuration
-  training:
-    batch_size: 32
-    learning_rate: 0.001
-    weight_decay: 1e-5
-    epochs: 100
-    
-    # Learning rate scheduler
-    scheduler:
-      type: "ReduceLROnPlateau"
-      patience: 5
-      factor: 0.5
-      min_lr: 1e-6
-    
-    # Early stopping
-    early_stopping:
-      patience: 10
-      min_delta: 1e-6
-    
-    # Gradient clipping
-    grad_clip_norm: 1.0
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 1e-5
+  epochs: 100
+  
+  # Learning rate scheduler
+  scheduler_type: "ReduceLROnPlateau"
+  scheduler_patience: 5
+  scheduler_factor: 0.5
+  scheduler_min_lr: 1e-6
+  
+  # Early stopping
+  early_stopping_patience: 10
+  early_stopping_min_delta: 1e-6
+  
+  # Gradient clipping
+  grad_clip_norm: 1.0
 
   # Logging and Saving
-  output:
-    save_dir: "experiments"
-    save_every_n_epochs: 10
-    tensorboard_log: true
+  save_dir: "experiments"
+  save_every_n_epochs: 10
+  tensorboard_log: true
 
   # Reproducibility
   seed: 42
@@ -91,39 +85,33 @@ base_config: &BASE_CONFIG
 # Multi-day flood event analysis
 hourly_flood_events:
   <<: *BASE_CONFIG
-  data:
-    csv_file: "processed/KettleRiverModels_hist_scaled_combined.csv"
-    window_size: 120    # 5 days (captures full flood event development)
-    stride: 12          # Every 12 hours (focus on significant changes)
-    target_cols: ["streamflow"]
-    feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
-    train_years: [1980, 2000]
-    val_years: [1975, 1979] 
-    test_years: [2001, 2005]
-    scale_features: true
-    scale_targets: true
-  model:
-    hidden_size: 128    # Larger model for complex flood patterns
-    num_layers: 1
-    dropout: 0.25
-  training:
-    batch_size: 24
-    learning_rate: 0.0005
-    weight_decay: 1e-5
-    epochs: 120
-    scheduler:
-      type: "ReduceLROnPlateau"
-      patience: 10
-      factor: 0.3
-      min_lr: 1e-6
-    early_stopping:
-      patience: 18
-      min_delta: 1e-6
-    grad_clip_norm: 1.0
-  output:
-    save_dir: "experiments"
-    save_every_n_epochs: 10
-    tensorboard_log: true
+  csv_file: "data_processed/KettleRiverModels_hist_scaled_combined.csv"
+  window_size: 120    # 5 days (captures full flood event development)
+  stride: 12          # Every 12 hours (focus on significant changes)
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
+  train_years: [1980, 2000]
+  val_years: [1975, 1979] 
+  test_years: [2001, 2005]
+  scale_features: true
+  scale_targets: true
+  hidden_size: 128    # Larger model for complex flood patterns
+  num_layers: 1
+  dropout: 0.25
+  batch_size: 24
+  learning_rate: 0.0005
+  weight_decay: 1e-5
+  epochs: 120
+  scheduler_type: "ReduceLROnPlateau"
+  scheduler_patience: 10
+  scheduler_factor: 0.3
+  scheduler_min_lr: 1e-6
+  early_stopping_patience: 18
+  early_stopping_min_delta: 1e-6
+  grad_clip_norm: 1.0
+  save_dir: "experiments"
+  save_every_n_epochs: 10
+  tensorboard_log: true
   seed: 42
   device: "auto"
 
@@ -132,80 +120,73 @@ hourly_flood_events:
 # -----------------------------------------------------------------------
 multitarget:
   <<: *BASE_CONFIG
-  data:
-    csv_file: "processed/KettleRiverModels_hist_scaled_combined.csv"
-    window_size: 30     # 30 hours (captures day-night ET cycles + streamflow response)
-    stride: 1           # Full temporal resolution for coupled processes
-    target_cols: ["streamflow", "ET"]  # Joint prediction of water & energy fluxes
-    feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
-    train_years: [1980, 2000]
-    val_years: [1975, 1979] 
-    test_years: [2001, 2005]
-    scale_features: true
-    scale_targets: true
-  model:
-    hidden_size: 96   # Slightly larger for multi-task
-    num_layers: 2
-    dropout: 0.25
-  training:
-    batch_size: 32
-    learning_rate: 0.001
-    weight_decay: 1e-5
-    epochs: 120
-    scheduler:
-      type: "ReduceLROnPlateau"
-      patience: 8
-      factor: 0.3
-      min_lr: 1e-6
-    early_stopping:
-      patience: 15
-      min_delta: 1e-6
-    grad_clip_norm: 1.0
-  output:
-    save_dir: "experiments"
-    save_every_n_epochs: 10
-    tensorboard_log: true
+  csv_file: "data_processed/KettleRiverModels_hist_scaled_combined.csv"
+  window_size: 30     # 30 hours (captures day-night ET cycles + streamflow response)
+  stride: 1           # Full temporal resolution for coupled processes
+  target_cols: ["streamflow", "ET"]  # Joint prediction of water & energy fluxes
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
+  train_years: [1980, 2000]
+  val_years: [1975, 1979] 
+  test_years: [2001, 2005]
+  scale_features: true
+  scale_targets: true
+  hidden_size: 96   # Slightly larger for multi-task
+  num_layers: 2
+  dropout: 0.25
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 1e-5
+  epochs: 120
+  scheduler_type: "ReduceLROnPlateau"
+  scheduler_patience: 8
+  scheduler_factor: 0.3
+  scheduler_min_lr: 1e-6
+  early_stopping_patience: 15
+  early_stopping_min_delta: 1e-6
+  grad_clip_norm: 1.0
+  save_dir: "experiments"
+  save_every_n_epochs: 10
+  tensorboard_log: true
   seed: 42
   device: "auto"
 
 
-streamflow_exp1:
+streamflow_exp1: &streamflow_exp1
   <<: *BASE_CONFIG
-  data:
-    csv_file: "processed/KettleRiverModels_hist_scaled_combined.csv"
-    window_size: 360    # 15 days
-    stride: 24          # Every 24 hours
-    target_cols: ["streamflow"]
-    feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
-    train_years: [1980, 2000]
-    val_years: [1975, 1979] 
-    test_years: [2001, 2005]
-    scale_features: true
-    scale_targets: true
-  model:
-    hidden_size: 128    # Larger model for complex flood patterns
-    num_layers: 1
-    dropout: 0.25
-  training:
-    batch_size: 64
-    learning_rate: 0.0005
-    weight_decay: 1e-5
-    epochs: 120
-    scheduler:
-      type: "ReduceLROnPlateau"
-      patience: 10
-      factor: 0.3
-      min_lr: 1e-6
-    early_stopping:
-      patience: 120
-      min_delta: 1e-6
-    grad_clip_norm: 1.0
-  output:
-    save_dir: "experiments"
-    save_every_n_epochs: 60
-    tensorboard_log: true
+  csv_file: "data_processed/KettleRiverModels_hist_scaled_combined.csv"
+  window_size: 360    # 15 days
+  stride: 24          # Every 24 hours
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
+  train_years: [1980, 2000]
+  val_years: [1975, 1979] 
+  test_years: [2001, 2005]
+  scale_features: true
+  scale_targets: true
+  hidden_size: 128    # Larger model for complex flood patterns
+  num_layers: 1
+  dropout: 0.25
+  batch_size: 64
+  learning_rate: 0.0005
+  weight_decay: 1e-5
+  epochs: 120
+  scheduler_type: "ReduceLROnPlateau"
+  scheduler_patience: 10
+  scheduler_factor: 0.3
+  scheduler_min_lr: 1e-6
+  early_stopping_patience: 120
+  early_stopping_min_delta: 1e-6
+  grad_clip_norm: 1.0
+  save_dir: "experiments"
+  save_every_n_epochs: 60
+  tensorboard_log: true
   seed: 42
   device: "auto"
+
+streamflow_exp2:
+  <<: *streamflow_exp1
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "PET", "ET", "SUPY", "WYIE", "SNOW", "TWS", "LZS", "AGW"]  # Complete meteorological suite
 
 # Default experiment to use if none specified
 default_experiment: "hourly_flood_events"
+
