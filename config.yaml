@@ -187,6 +187,23 @@ streamflow_exp2:
   <<: *streamflow_exp1
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "PET", "ET", "SUPY", "WYIE", "SNOW", "TWS", "LZS", "AGW"]  # Complete meteorological suite
 
+streamflow_hstl:
+  <<: *streamflow_exp1
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
+  intermediate_targets: ["PET", "ET", "SUPY", "WYIE", "SNOW", "TWS", "LZS", "AGW"]
+  training_strategy: "hstl"
+
+streamflow_hmtl: &streamflow_hmtl
+  <<: *streamflow_exp1
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
+  intermediate_targets: ["PET", "ET", "SUPY", "WYIE", "SNOW", "TWS", "LZS", "AGW"]
+  training_strategy: "hmtl"
+
+streamflow_hmtl_test:
+  <<: *streamflow_hmtl
+  epochs: 10
+
+
 # Default experiment to use if none specified
 default_experiment: "hourly_flood_events"
 
