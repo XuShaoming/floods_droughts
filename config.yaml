@@ -187,6 +187,22 @@ streamflow_exp2:
   <<: *streamflow_exp1
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "PET", "ET", "SUPY", "WYIE", "SNOW", "TWS", "LZS", "AGW"]  # Complete meteorological suite
 
+streamflow_exp3:
+  <<: *streamflow_exp1
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "ET", "SNOW", "TWS"]  # Complete meteorological suite
+
+streamflow_exp4:
+  <<: *streamflow_exp1
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "ET", "SNOW", "LZS", "AGW"]  # Complete meteorological suite
+
+streamflow_exp5:
+  <<: *streamflow_exp1
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "ET", "TWS"]  # Complete meteorological suite
+
+streamflow_exp6:
+  <<: *streamflow_exp1
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "ET", "SNOW", "TWS", "LZS", "AGW"]
+
 streamflow_hstl:
   <<: *streamflow_exp1
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite

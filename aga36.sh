@@ -37,11 +37,11 @@
 
 
 
-# python inference.py --model-dir experiments/streamflow_exp2 --model-trained final_model.pth --dataset train --analysis &
-python inference.py --model-dir experiments/streamflow_exp2 --model-trained final_model.pth --dataset test --analysis & 
-python inference.py --model-dir experiments/streamflow_exp2 --model-trained final_model.pth --dataset val --analysis &
+# # python inference.py --model-dir experiments/streamflow_exp2 --model-trained final_model.pth --dataset train --analysis &
+# python inference.py --model-dir experiments/streamflow_exp2 --model-trained final_model.pth --dataset test --analysis & 
+# python inference.py --model-dir experiments/streamflow_exp2 --model-trained final_model.pth --dataset val --analysis &
 
-python inference.py --model-dir experiments/streamflow_exp2 --model-trained best_model.pth --dataset train --analysis &
-python inference.py --model-dir experiments/streamflow_exp2 --model-trained best_model.pth --dataset val --analysis &
-python inference.py --model-dir experiments/streamflow_exp2 --model-trained best_model.pth --dataset test --analysis &
+# python inference.py --model-dir experiments/streamflow_exp2 --model-trained best_model.pth --dataset train --analysis &
+# python inference.py --model-dir experiments/streamflow_exp2 --model-trained best_model.pth --dataset val --analysis &
+# python inference.py --model-dir experiments/streamflow_exp2 --model-trained best_model.pth --dataset test --analysis &
 
