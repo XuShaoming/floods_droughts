@@ -1,4 +1,4 @@
-# Flood/Drought Prediction Pipeline UML Flowchart
+# Flood/Drought Prediction Pipeline Flowchart
 
 ```mermaid
 flowchart TD
@@ -27,7 +27,7 @@ flowchart TD
     
     %% Data Loading and Preprocessing
     F1[dataloader.py<br/>FloodDroughtDataLoader]
-    F2[Time Series Windowing<br/>Sliding Windows<br/>Many-to-many/Many-to-one]
+    F2[Time Series Windowing<br/>Sliding Windows]
     F3[Data Normalization<br/>StandardScaler<br/>Train/Val/Test Split]
     F4[PyTorch DataLoaders<br/>Batch Processing]
     
@@ -114,7 +114,7 @@ flowchart TD
     class D1,H1,H2,H3,J1 results
 ```
 
-<!-- ## Detailed Workflow Description
+## Detailed Workflow Description
 
 ### 1. Data Sources
 - **EDDEV1 Climate Data**: 36km resolution meteorological variables (T2, DEWPT, PRECIP, SWDNB, WSPD10, LH)
@@ -177,4 +177,4 @@ flowchart TD
 - **Trained Models**: Best and final model checkpoints
 - **Evaluation Metrics**: Quantitative performance measures
 - **Visualizations**: Time series plots, scatter plots, residual analysis
-- **Predictions**: Raw model outputs for further analysis -->
+- **Predictions**: Raw model outputs for further analysis
