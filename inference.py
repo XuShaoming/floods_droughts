@@ -720,13 +720,42 @@ def analyze_inference_results(inference_results: Dict, save_dir: Optional[str] =
         
         # Save time series data
         if save_dir:
-            combined_ts = pd.merge(pred_ts, target_ts, left_index=True, right_index=True, how='inner')
-            combined_ts.to_csv(save_dir / f'{dataset_name}_reconstructed_timeseries.csv')
+            # Merge with explicit suffixes to distinguish prediction vs observation
+            combined_ts = pd.merge(pred_ts, target_ts, left_index=True, right_index=True, how='inner', suffixes=('_prediction', '_observation'))
+            
+            # Reset index to make date a column named 'date'
+            combined_ts.reset_index(inplace=True)
+            
+            # Rename the index column to 'date' if it's not already named that
+            if combined_ts.columns[0] != 'date':
+                old_col_name = str(combined_ts.columns[0])
+                combined_ts.rename(columns={old_col_name: 'date'}, inplace=True)
+            
+            # Rename other columns to have clear names
+            # The merged columns should now be 'streamflow_prediction' and 'streamflow_observation'
+            column_mapping = {}
+            for col in combined_ts.columns:
+                if col != 'date':
+                    if col.endswith('_prediction'):
+                        # Keep the prediction suffix but clean up the name
+                        base_name = col.replace('_prediction', '')
+                        column_mapping[col] = f'{base_name}_prediction'
+                    elif col.endswith('_observation'):
+                        # Keep the observation suffix but clean up the name
+                        base_name = col.replace('_observation', '')
+                        column_mapping[col] = f'{base_name}_observation'
+            
+            if column_mapping:
+                combined_ts.rename(columns=column_mapping, inplace=True)
+            
+            csv_path = Path(save_dir) / f'{dataset_name}_reconstructed_timeseries.csv'
+            combined_ts.to_csv(csv_path, index=False)
             print(f"Time series saved: {save_dir}/{dataset_name}_reconstructed_timeseries.csv")
     
     # Save all metrics
     if save_dir:
-        with open(save_dir / 'all_metrics.json', 'w') as f:
+        metrics_path = Path(save_dir) / 'all_metrics.json'
+        with open(metrics_path, 'w') as f:
             json.dump(all_metrics, f, indent=2)
         print(f"All metrics saved: {save_dir}/all_metrics.json")
     
