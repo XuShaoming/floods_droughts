@@ -731,18 +731,26 @@ def analyze_inference_results(inference_results: Dict, save_dir: Optional[str] =
                 old_col_name = str(combined_ts.columns[0])
                 combined_ts.rename(columns={old_col_name: 'date'}, inplace=True)
             
-            # Rename other columns to have clear names
-            # The merged columns should now be 'streamflow_prediction' and 'streamflow_observation'
+            # Fix column names to ensure clear distinction between predictions and observations
+            # Handle cases where pandas defaults to _x, _y suffixes
             column_mapping = {}
             for col in combined_ts.columns:
                 if col != 'date':
                     if col.endswith('_prediction'):
-                        # Keep the prediction suffix but clean up the name
+                        # Already has correct suffix
                         base_name = col.replace('_prediction', '')
                         column_mapping[col] = f'{base_name}_prediction'
                     elif col.endswith('_observation'):
-                        # Keep the observation suffix but clean up the name
+                        # Already has correct suffix
                         base_name = col.replace('_observation', '')
+                        column_mapping[col] = f'{base_name}_observation'
+                    elif col.endswith('_x'):
+                        # pandas default suffix for left dataframe (predictions)
+                        base_name = col.replace('_x', '')
+                        column_mapping[col] = f'{base_name}_prediction'
+                    elif col.endswith('_y'):
+                        # pandas default suffix for right dataframe (observations)
+                        base_name = col.replace('_y', '')
                         column_mapping[col] = f'{base_name}_observation'
             
             if column_mapping:

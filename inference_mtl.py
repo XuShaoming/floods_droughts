@@ -964,8 +964,34 @@ def analyze_inference_results(inference_results: Dict, save_dir: Optional[str] =
             if feature_save_dir:
                 combined_feature_ts = pd.merge(
                     feature_pred_ts, feature_target_ts, 
-                    left_index=True, right_index=True, how='inner'
+                    left_index=True, right_index=True, how='inner', 
+                    suffixes=('_prediction', '_observation')
                 )
+                
+                # Fix column names to ensure clear distinction between predictions and observations
+                # Handle cases where pandas defaults to _x, _y suffixes
+                column_mapping = {}
+                for col in combined_feature_ts.columns:
+                    if col.endswith('_prediction'):
+                        # Already has correct suffix
+                        base_name = col.replace('_prediction', '')
+                        column_mapping[col] = f'{base_name}_prediction'
+                    elif col.endswith('_observation'):
+                        # Already has correct suffix
+                        base_name = col.replace('_observation', '')
+                        column_mapping[col] = f'{base_name}_observation'
+                    elif col.endswith('_x'):
+                        # pandas default suffix for left dataframe (predictions)
+                        base_name = col.replace('_x', '')
+                        column_mapping[col] = f'{base_name}_prediction'
+                    elif col.endswith('_y'):
+                        # pandas default suffix for right dataframe (observations)
+                        base_name = col.replace('_y', '')
+                        column_mapping[col] = f'{base_name}_observation'
+                
+                if column_mapping:
+                    combined_feature_ts.rename(columns=column_mapping, inplace=True)
+                
                 feature_csv_path = feature_save_dir / f'{dataset_name}_{feature_name}_reconstructed_timeseries.csv'
                 combined_feature_ts.to_csv(feature_csv_path)
                 print(f"Feature time series saved: {feature_csv_path}")
