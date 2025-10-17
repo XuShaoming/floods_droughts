@@ -219,6 +219,31 @@ streamflow_hmtl_test:
   <<: *streamflow_hmtl
   epochs: 10
 
+streamflow_hmtl_30days:
+  <<: *streamflow_hmtl
+  window_size: 720    # 30 days
+  stride: 24          # Every 24 hours
+
+streamflow_hmtl_60days:
+  <<: *streamflow_hmtl
+  window_size: 1440   # 60 days
+  stride: 24          # Every 24 hours
+
+streamflow_hmtl_120days:
+  <<: *streamflow_hmtl
+  window_size: 2880   # 120 days
+  stride: 24          # Every 24 hours
+
+streamflow_hmtl_cmb: &streamflow_hmtl_cmb
+  <<: *streamflow_exp1
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]  # Complete meteorological suite
+  intermediate_targets: ["PET", "ET", "SUPY", "WYIE", "SNOW", "TWS", "LZS", "AGW"]
+  training_strategy: "hmtl_cmb"
+
+streamflow_hmtl_cmb_test:
+  <<: *streamflow_hmtl_cmb
+  epochs: 10
+
 
 # Default experiment to use if none specified
 default_experiment: "hourly_flood_events"
