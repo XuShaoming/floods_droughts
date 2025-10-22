@@ -100,7 +100,17 @@ wait
 # python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset val --analysis &
 # python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset test --analysis &
 
-python -m pdb inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset test --analysis
+# python -m pdb inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset test --analysis
+
+# python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset test --analysis --stride 336
+
+# python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset train --analysis --stride 336 & 
+
+# python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset val --analysis --stride 336 &
+
+python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset val --analysis --stride 180 &
+python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset train --analysis --stride 180 &
+python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset test --analysis --stride 180 &
 
 wait
 )

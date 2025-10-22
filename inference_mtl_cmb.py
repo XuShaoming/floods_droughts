@@ -62,7 +62,9 @@ def resolve_cmb_metadata(config: Dict, model_config: Dict) -> Dict:
 
 
 def load_model_and_config(
-    model_dir: str, model_trained: str
+    model_dir: str,
+    model_trained: str,
+    stride_override: Optional[int] = None,
 ) -> Tuple[HierarchicalLSTMModel, Dict, Dict, torch.device]:
     """Load trained model, configuration, and target device."""
 
@@ -86,6 +88,10 @@ def load_model_and_config(
     config.setdefault("intermediate_targets", config.get("intermediate_targets", []))
     config.setdefault("target_cols", config.get("target_cols", ["streamflow"]))
 
+    if stride_override is not None:
+        print(f"Overriding stride to {stride_override}")
+        config["stride"] = stride_override
+
     base_feature_cols = config.get("feature_cols")
     if not base_feature_cols:
         raise ValueError("Configuration must include 'feature_cols'.")
@@ -99,6 +105,7 @@ def load_model_and_config(
     model_config = checkpoint.get("config", {})
 
     metadata = resolve_cmb_metadata(config, model_config)
+    metadata["stride"] = config["stride"]
     config["cmb_metadata"] = metadata
 
     input_size = len(base_feature_cols) + metadata.get("cmb_feature_count", 0)
@@ -264,18 +271,30 @@ def run_scif_rollout(
     return predictions_intermediate, predictions_final
 
 
-def run_inference(model_dir: str, model_trained: str, dataset_names: Optional[List[str]] = None) -> Dict:
+def run_inference(
+    model_dir: str,
+    model_trained: str,
+    dataset_names: Optional[List[str]] = None,
+    stride_override: Optional[int] = None,
+) -> Dict:
     """Run SCIF-based inference for the requested datasets."""
 
-    model, config, model_config, device = load_model_and_config(model_dir, model_trained)
+    model, config, model_config, device = load_model_and_config(
+        model_dir, model_trained, stride_override=stride_override
+    )
     cmb_metadata = config["cmb_metadata"]
     intermediate_names = list(config.get("intermediate_targets", []))
     final_names = list(config["target_cols"])
 
+    effective_stride = config.get("stride")
+    if effective_stride is None:
+        raise ValueError("Configuration must define 'stride' either in config or via override.")
+    cmb_metadata["stride"] = effective_stride
+
     data_loader = FloodDroughtDataLoader(
         csv_file=config["csv_file"],
         window_size=config["window_size"],
-        stride=config["stride"],
+    stride=effective_stride,
         target_col=config["target_cols"],
         feature_cols=config["feature_cols"],
         intermediate_targets=config.get("intermediate_targets", []),
@@ -334,6 +353,7 @@ def run_inference(model_dir: str, model_trained: str, dataset_names: Optional[Li
         print(f"\n{'=' * 60}")
         print(f"RUNNING SCIF INFERENCE ON {dataset_name.upper()} DATASET")
         print(f"{'=' * 60}")
+        print(f"Using stride: {effective_stride}{' (override)' if stride_override is not None else ''}")
 
         predictions_intermediate, predictions_final = run_scif_rollout(
             model=model,
@@ -344,7 +364,7 @@ def run_inference(model_dir: str, model_trained: str, dataset_names: Optional[Li
             state_order=cmb_metadata["state_targets_order"],
             intermediate_names=intermediate_names,
             final_names=final_names,
-            stride=cmb_metadata.get("stride", config["stride"]),
+            stride=cmb_metadata.get("stride", effective_stride),
         )
 
         intermediate_targets_dict = _build_target_dict(intermediate_targets, intermediate_names)
@@ -984,6 +1004,12 @@ def main() -> None:
         help="Run comprehensive analysis with metrics and visualizations",
     )
     parser.add_argument(
+        "--stride",
+        type=int,
+        default=None,
+        help="Override stride used for inference windows",
+    )
+    parser.add_argument(
         "--analyze-features",
         type=str,
         default=None,
@@ -998,9 +1024,14 @@ def main() -> None:
     analyze_features = [f.strip() for f in args.analyze_features.split(",")] if args.analyze_features else None
     dataset_names = [args.dataset] if args.dataset else None
 
-    inference_results = run_inference(args.model_dir, args.model_trained, dataset_names)
+    inference_results = run_inference(
+        args.model_dir,
+        args.model_trained,
+        dataset_names,
+        stride_override=args.stride,
+    )
 
-    save_dir = Path(args.model_dir) / f"{Path(args.model_trained).stem}_results"
+    save_dir = Path(args.model_dir) / f"{Path(args.model_trained).stem}_results_{args.stride}"
     save_dir.mkdir(exist_ok=True)
 
     results_filename = f"inference_results_{args.dataset or 'all'}.pkl"
