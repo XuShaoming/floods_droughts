@@ -537,7 +537,12 @@ def plot_predictions_vs_truth(y_true: np.ndarray, y_pred: np.ndarray,
 
 
 
-def run_inference(model_dir: str, model_trained: str, dataset_names: Optional[List[str]] = None) -> Dict:
+def run_inference(
+    model_dir: str,
+    model_trained: str,
+    dataset_names: Optional[List[str]] = None,
+    stride_override: Optional[int] = None,
+) -> Dict:
     """
     Pure inference function - load hierarchical model and generate predictions without analysis.
     
@@ -553,11 +558,20 @@ def run_inference(model_dir: str, model_trained: str, dataset_names: Optional[Li
     model, config, model_config = load_model_and_config(model_dir, model_trained)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
+    # Determine which stride to use
+    config_stride = config.get('stride')
+    effective_stride = stride_override if stride_override is not None else config_stride
+    if effective_stride is None:
+        raise ValueError("Stride must be defined in config or provided via --stride")
+    if stride_override is not None:
+        print(f"Overriding stride: using {effective_stride} instead of config value {config_stride}")
+    config['stride'] = effective_stride
+
     # Initialize hierarchical data loader with same configuration as training
     data_loader = FloodDroughtDataLoader(
         csv_file=config['csv_file'],
         window_size=config['window_size'],
-        stride=config['stride'],
+        stride=effective_stride,
         target_col=config['target_cols'],
         feature_cols=config['feature_cols'],
         intermediate_targets=config.get('intermediate_targets', []),
@@ -592,6 +606,7 @@ def run_inference(model_dir: str, model_trained: str, dataset_names: Optional[Li
         print(f"\n{'='*60}")
         print(f"RUNNING INFERENCE ON {dataset_name.upper()} DATASET")
         print(f"{'='*60}")
+        print(f"Using stride: {effective_stride}{' (override)' if stride_override is not None else ''}")
         
         # Step 1: Make hierarchical predictions (normalized)
         (intermediate_preds, final_preds, 
@@ -1259,6 +1274,8 @@ def main():
                        help='Run comprehensive analysis (creates feature-specific folders and metrics)')
     parser.add_argument('--analyze-features', type=str, default=None,
                        help='Comma-separated list of features to analyze (e.g., "PET,ET,streamflow"). If not specified, analyzes all features.')
+    parser.add_argument('--stride', type=int, default=None,
+                        help='Override stride to use for inference (defaults to value from config)')
     
     args = parser.parse_args()
     
@@ -1283,13 +1300,18 @@ def main():
         dataset_names = [args.dataset]
     
     # Set up save directory
-    save_dir = Path(args.model_dir) / f'{Path(args.model_trained).stem}_results'
+    save_dir = Path(args.model_dir) / f'{Path(args.model_trained).stem}_results_{args.stride}'
     
     print(f"\n{'='*60}")
     print("STEP 1: RUNNING HIERARCHICAL INFERENCE")
     print(f"{'='*60}")
     
-    inference_results = run_inference(args.model_dir, args.model_trained, dataset_names)
+    inference_results = run_inference(
+        args.model_dir,
+        args.model_trained,
+        dataset_names,
+        stride_override=args.stride,
+    )
     
     # Save inference results
     save_dir.mkdir(exist_ok=True)
