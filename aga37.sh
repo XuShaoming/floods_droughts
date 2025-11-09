@@ -64,6 +64,7 @@
 # python train.py --config 'config.yaml' --experiment streamflow_exp4 --seed 42 &
 # python train.py --config 'config.yaml' --experiment streamflow_exp5 --seed 42 &
 # python train.py --config 'config.yaml' --experiment streamflow_exp6 --seed 42 &
+# python train_hmtl_uncertainty.py --experiment streamflow_hmtl_uncertainty --seed 42 &
 wait
 )
 
@@ -124,9 +125,13 @@ wait
 # python inference_mtl.py --model-dir experiments/streamflow_hmtl --model-trained best_model.pth --dataset val --analysis --stride 24 &
 # python inference_mtl.py --model-dir experiments/streamflow_hmtl --model-trained best_model.pth --dataset test --analysis --stride 24 &
 
-python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset val --analysis --stride 24 &
-python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset train --analysis --stride 24 &
-python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset test --analysis --stride 24 &
+# python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset val --analysis --stride 24 &
+# python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset train --analysis --stride 24 &
+# python inference_mtl_cmb.py --model-dir experiments/streamflow_hmtl_cmb --model-trained best_model.pth --dataset test --analysis --stride 24 &
+
+python inference_mtl.py --model-dir experiments/streamflow_hmtl_uncertainty --model-trained best_model.pth --dataset train --analysis --stride 24 &
+python inference_mtl.py --model-dir experiments/streamflow_hmtl_uncertainty --model-trained best_model.pth --dataset val --analysis --stride 24 &
+python inference_mtl.py --model-dir experiments/streamflow_hmtl_uncertainty --model-trained best_model.pth --dataset test --analysis --stride 24 &
 
 wait
 )

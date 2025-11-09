@@ -244,6 +244,13 @@ streamflow_hmtl_cmb_test:
   <<: *streamflow_hmtl_cmb
   epochs: 10
 
+streamflow_hmtl_uncertainty:
+  <<: *streamflow_hmtl
+  training_strategy: "hmtl_uncertainty"
+  uncertainty_init_log_var: 0.0
+  uncertainty_min_log_var: -6.0
+  uncertainty_max_log_var: 6.0
+
 
 # Default experiment to use if none specified
 default_experiment: "hourly_flood_events"

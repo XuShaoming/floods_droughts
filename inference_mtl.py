@@ -176,9 +176,17 @@ def load_model_and_config(model_dir: str, model_trained: str) -> Tuple[Hierarchi
     with open(config_path, 'r') as f:
         full_config = yaml.safe_load(f)
     
-    # Get the first experiment config (assuming single experiment in file)
-    experiment_name = list(full_config.keys())[0]
-    config = full_config[experiment_name]
+    config: Dict
+    if isinstance(full_config, dict):
+        # common pattern: {"experiment_name": {config}}
+        if len(full_config) == 1 and isinstance(next(iter(full_config.values())), dict):
+            experiment_name, config = next(iter(full_config.items()))
+        else:
+            # already a flattened config saved during training
+            experiment_name = full_config.get('experiment_name', Path(model_dir).name)
+            config = full_config
+    else:
+        raise ValueError("Configuration file must deserialize to a mapping.")
     
     print(f"Loaded experiment: {experiment_name}")
     
