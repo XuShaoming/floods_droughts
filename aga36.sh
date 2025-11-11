@@ -47,3 +47,8 @@
 
 
 # python inference.py --model-dir experiments/streamflow_exp2 --model-trained best_model.pth --dataset val --analysis
+
+
+python train_global.py --config config_global.yaml --experiment streamflow_global_exp1_test
+python train_global.py --config config_global.yaml --experiment streamflow_global_exp1
+# python inference_global.py --model-dir <exp_dir> --dataset test

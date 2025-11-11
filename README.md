@@ -145,6 +145,19 @@ python train.py --config 'config.yaml' --experiment streamflow_exp1 --seed 42
 python inference.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset test --analysis
 ```
 
+### Global Multi-Watershed Modeling
+- **`config_global.yaml`**: Defines multi-watershed experiments (e.g., `streamflow_global_exp1`) with explicit `scenarios` (`hist_scaled`, `RCP4.5`, `RCP8.5`), scenario date ranges, and `dataset_splits` that pair watershed lists with scenario/date filters for train/val/test.
+- **`dataloader_global.py`**: Loads all requested `{watershed}_{scenario}_combined.csv` files, filters them according to the split definitions, and injects static watershed attributes from `hspf_CAT_attributes.csv`.
+- **`train_global.py`**: Trains a single LSTM across arbitrary watershed/scenario combinations, embeds static attributes, logs TensorBoard metrics, and saves learning curves to each experiment folder.
+- **`inference_global.py`**: Recreates the global data pipeline for evaluation, supports optional `--watersheds` / `--scenarios` filtering, and writes per-split metrics plus raw predictions/targets.
+
+```bash
+# Train the global model with static attribute embeddings
+python train_global.py --config config_global.yaml --experiment streamflow_global_exp1
+# Evaluate the trained global checkpoint on the test split
+python inference_global.py --model-dir experiments/global_models/streamflow_global_exp1 --dataset test --scenarios RCP4.5
+```
+
 ### Features
 - YAML-based configuration management
 - Many-to-many and many-to-one sequence modeling

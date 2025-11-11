@@ -328,8 +328,8 @@ def save_model(model, optimizer, epoch, loss, model_config, save_path):
     print(f"Model saved to {save_path}")
 
 
-def plot_training_history(train_losses, val_losses, save_dir):
-    """Plot and save training history."""
+def plot_training_history(train_losses, val_losses, save_dir, filename: str = "learning_curves.png"):
+    """Plot and save training/validation loss curves."""
     plt.figure(figsize=(10, 6))
     
     # Plot overall losses
@@ -342,8 +342,10 @@ def plot_training_history(train_losses, val_losses, save_dir):
     plt.grid(True)
     
     plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, 'training_history.png'), dpi=300, bbox_inches='tight')
-    plt.show()
+    output_path = os.path.join(save_dir, filename)
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"Saved learning curves to {output_path}")
 
 
 def seed_everything(seed=42):

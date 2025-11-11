@@ -1,0 +1,104 @@
+# Global LSTM Training Configuration for Multi-Watershed Experiments
+#
+# USAGE:
+#   python train_global.py --config config_global.yaml --experiment streamflow_global_exp1
+#
+# This configuration supports training a single model across multiple watersheds and
+# forcing periods (e.g., historical, RCP4.5, RCP8.5). Static watershed attributes from
+# hspf_CAT_attributes.csv are embedded and concatenated with dynamic meteorological
+# sequences during training.
+
+
+
+base_global_config: &BASE_GLOBAL_CONFIG
+  # Data configuration
+  data_dir: "data_processed"
+  csv_pattern: "{watershed}_{scenario}_combined.csv"
+  static_attributes_file: "data_processed/hspf_CAT_attributes.csv"
+  static_attribute_id_col: "characteristic_id"
+  static_attribute_value_col: "value"
+  static_attribute_model_col: "model"
+  window_size: 360          # 15 days of hourly data
+  stride: 24                # 1-day step between windows
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+  use_static_attributes: true
+  scale_features: true
+  scale_targets: true
+  scale_static_attributes: true
+  dataset_splits:
+    train:
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels"]
+        scenarios: ["hist_scaled"]
+        start: "1980-01-01 00:00:00"
+        end: "2000-12-31 23:00:00"
+    val:
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels"]
+        scenarios: ["hist_scaled"]
+        start: "1975-01-01 00:00:00"
+        end: "1979-12-31 23:00:00"
+    test:
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels"]
+        scenarios: ["hist_scaled"]
+        start: "2001-01-01 00:00:00"
+        end: "2005-12-31 23:00:00"
+
+  # Model configuration
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.25
+  static_embedding_dim: 64
+  static_embedding_layers: [128, 64]
+  static_dropout: 0.1
+
+  # Training configuration
+  batch_size: 64
+  learning_rate: 5.0e-4
+  weight_decay: 1.0e-5
+  epochs: 150
+  grad_clip_norm: 1.0
+  scheduler_type: "ReduceLROnPlateau"
+  scheduler_patience: 10
+  scheduler_factor: 0.3
+  scheduler_min_lr: 1.0e-6
+  early_stopping_patience: 20
+  early_stopping_min_delta: 1.0e-6
+
+  # Experiment management
+  save_dir: "experiments/global_models"
+  save_every_n_epochs: 25
+  tensorboard_log: true
+  seed: 42
+  device: "auto"
+
+default_experiment: streamflow_global_exp1
+
+streamflow_global_exp1: &STREAMFLOW_GLOBAL_EXP1
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Baseline global LSTM model that jointly learns from BlueEarth, LeSueur,
+    Watonwan, and KettleRiverModels watersheds across the historical scenario
+    (hist_scaled). Static
+    attributes are embedded and concatenated with dynamic inputs at every time step.
+
+streamflow_global_exp1_test:
+  <<: *STREAMFLOW_GLOBAL_EXP1
+  epochs: 5
+  tensorboard_log: false
+  save_every_n_epochs: 1
+
+streamflow_global_exp2: &STREAMFLOW_GLOBAL_EXP2
+  <<: *BASE_GLOBAL_CONFIG
+  dataset_splits:
+    train:
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan"]
+        scenarios: ["hist_scaled"]
+        years: [1980, 2000]
+    val:
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan"]
+        scenarios: ["hist_scaled"]
+        years: [1975, 1979]
+    test:
+      - watersheds: [ "KettleRiverModels"]
+        scenarios: ["hist_scaled"]
+        years: [2001, 2005]
