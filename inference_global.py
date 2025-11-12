@@ -331,6 +331,8 @@ def reconstruct_time_series(
     entries: List[Dict],
     target_names: Sequence[str],
     method: str,
+    stride: Optional[int] = None,
+    window_size: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Reconstruct full time series from overlapping prediction windows.
@@ -340,6 +342,9 @@ def reconstruct_time_series(
         target_names: List of target variable names.
         method: Reconstruction method - 'average' (average overlapping predictions),
                 'latest' or 'tail' (prefer later windows for overlapping timestamps).
+        stride: Number of timesteps between window starts. If provided, used for non-overlapping
+                reconstruction in 'latest'/'tail' methods.
+        window_size: Total number of timesteps in each window. Optional, for validation.
     
     Returns:
         DataFrame with columns: timestamp, pred_{target}, obs_{target} for each target,
@@ -379,18 +384,36 @@ def reconstruct_time_series(
         return pd.DataFrame(rows)
 
     # Non-overlapping reconstruction preferring later windows ("latest"/"tail")
-    timeline: Dict[pd.Timestamp, Tuple[np.ndarray, np.ndarray]] = {}
-    scenario_tracker: Dict[pd.Timestamp, Optional[str]] = {}
+    # Strategy: Keep all timesteps from first window, then only keep the last 'stride'
+    # timesteps from subsequent windows to avoid overlap
     entries_sorted = sorted(
         entries,
         key=lambda e: pd.Timestamp(e["dates"][0]) if e.get("dates") else pd.Timestamp.min,
     )
 
-    for entry in entries_sorted:
+    if stride is None:
+        raise ValueError("stride parameter is required for 'latest'/'tail' reconstruction methods")
+
+    timeline: Dict[pd.Timestamp, Tuple[np.ndarray, np.ndarray]] = {}
+    scenario_tracker: Dict[pd.Timestamp, Optional[str]] = {}
+
+    for window_idx, entry in enumerate(entries_sorted):
         scenario = entry.get("scenario")
-        for ts, pred_vec, obs_vec in zip(entry.get("dates", []), entry["pred"], entry["obs"]):
+        dates = entry.get("dates", [])
+        pred_array = entry["pred"]
+        obs_array = entry["obs"]
+        
+        if window_idx == 0:
+            # First window: keep all timesteps
+            start_idx = 0
+        else:
+            # Subsequent windows: only keep the last 'stride' timesteps
+            start_idx = len(dates) - stride
+        
+        for idx in range(start_idx, len(dates)):
+            ts = dates[idx]
             timestamp = pd.Timestamp(ts)
-            timeline[timestamp] = (pred_vec, obs_vec)
+            timeline[timestamp] = (pred_array[idx], obs_array[idx])
             scenario_tracker[timestamp] = scenario
 
     rows = []
@@ -439,6 +462,8 @@ def process_split_results(
     reconstruction_methods: Sequence[str],
     output_dir: str,
     file_format: str,
+    stride: Optional[int] = None,
+    window_size: Optional[int] = None,
 ) -> Dict[str, Dict[str, str]]:
     """
     Process and save inference results for a dataset split.
@@ -455,6 +480,8 @@ def process_split_results(
         reconstruction_methods: List of methods to use (e.g., ['average', 'latest']).
         output_dir: Directory to save output files.
         file_format: File format for output ('csv' or 'parquet').
+        stride: Number of timesteps between window starts, used for reconstruction.
+        window_size: Total number of timesteps in each window.
     
     Returns:
         Dictionary mapping watershed_name -> dict of file_type -> file_path.
@@ -473,7 +500,9 @@ def process_split_results(
         saved_paths[watershed]["windowed"] = window_path
 
         for method in reconstruction_methods:
-            recon_df = reconstruct_time_series(entries, target_names, method)
+            recon_df = reconstruct_time_series(
+                entries, target_names, method, stride=stride, window_size=window_size
+            )
             recon_df = recon_df.sort_values("timestamp").reset_index(drop=True)
             recon_filename = f"{watershed_key}_{split_name}_reconstructed_{method}.{file_format}"
             recon_path = os.path.join(output_dir, recon_filename)
@@ -639,6 +668,8 @@ def main():
             reconstruction_methods,
             output_dir,
             file_format,
+            stride=combined_config.get("stride"),
+            window_size=combined_config.get("window_size"),
         )
 
         saved_files[split_name] = split_paths
