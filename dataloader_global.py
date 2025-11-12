@@ -139,6 +139,7 @@ class GlobalFloodDroughtDataLoader:
         self.train_loader: Optional[DataLoader] = None
         self.val_loader: Optional[DataLoader] = None
         self.test_loader: Optional[DataLoader] = None
+        self.metadata: Dict[str, Dict[str, List]] = {"train": {}, "val": {}, "test": {}}
 
     def _collect_unique_from_splits(self, key: str) -> List[str]:
         values = set()
@@ -360,6 +361,12 @@ class GlobalFloodDroughtDataLoader:
             "date_train": [],
             "date_val": [],
             "date_test": [],
+            "watershed_train": [],
+            "watershed_val": [],
+            "watershed_test": [],
+            "scenario_train": [],
+            "scenario_val": [],
+            "scenario_test": [],
         }
 
     def _build_prepared_from_cache(self, split_cache: Dict[str, List[Dict]]) -> Dict[str, np.ndarray]:
@@ -384,6 +391,7 @@ class GlobalFloodDroughtDataLoader:
                 targets = entry["targets"]
                 dates = entry["dates"]
                 watershed = entry["watershed"]
+                scenario = entry["scenario"]
 
                 if features.size == 0 or targets.size == 0:
                     continue
@@ -400,6 +408,8 @@ class GlobalFloodDroughtDataLoader:
                 prepared[f"x_{split_name}"].append(x_windows)
                 prepared[f"y_{split_name}"].append(y_windows)
                 prepared[f"date_{split_name}"].extend(date_windows if date_windows is not None else [])
+                prepared[f"watershed_{split_name}"].extend([watershed] * len(x_windows))
+                prepared[f"scenario_{split_name}"].extend([scenario] * len(x_windows))
 
                 if self.use_static_attributes:
                     static_vector = self.static_attribute_lookup.get(watershed)
@@ -525,6 +535,14 @@ class GlobalFloodDroughtDataLoader:
             return self.prepared_data
 
         self.prepared_data = self._prepare_data_from_splits()
+        self.metadata = {
+            split: {
+                "dates": self.prepared_data.get(f"date_{split}", []),
+                "watershed": self.prepared_data.get(f"watershed_{split}", []),
+                "scenario": self.prepared_data.get(f"scenario_{split}", []),
+            }
+            for split in ["train", "val", "test"]
+        }
 
         return self.prepared_data
 

@@ -51,4 +51,8 @@
 
 python train_global.py --config config_global.yaml --experiment streamflow_global_exp1_test
 python train_global.py --config config_global.yaml --experiment streamflow_global_exp1
+
+
+python -m pdb inference_global.py --config config_global.yaml --experiment streamflow_global_exp1_inference
+python analysis_global.py --config config_global.yaml --experiment streamflow_global_exp1_inference
 # python inference_global.py --model-dir <exp_dir> --dataset test

@@ -102,3 +102,39 @@ streamflow_global_exp2: &STREAMFLOW_GLOBAL_EXP2
       - watersheds: [ "KettleRiverModels"]
         scenarios: ["hist_scaled"]
         years: [2001, 2005]
+
+streamflow_global_exp1_inference:
+  <<: *STREAMFLOW_GLOBAL_EXP1
+  description: >
+    Inference and analysis configuration for streamflow_global_exp1.
+    Uses the trained model artifacts to run predictions and post-process them.
+  source_experiment: "streamflow_global_exp1"
+  checkpoint_files: "best_model.pth" # or "final_model.pth"
+  split: "test"
+  window_plots:
+    BlueEarth: [0,1,2,3]
+    LeSueur: [0,1,2,3]
+    Watonwan: [0,1,2,3]
+    KettleRiverModels: [0,1,2,3]
+  timeseries_plots:
+    KettleRiverModels:
+      - method: "average"
+        start: "2001-01-01 00:00:00"
+        end: "2005-12-31 23:00:00"
+    BlueEarth:
+      - method: "average"
+        start: "2001-01-01 00:00:00"
+        end: "2005-12-31 23:00:00"
+    LeSueur:
+      - method: "average"
+        start: "2001-01-01 00:00:00"
+        end: "2005-12-31 23:00:00"
+    Watonwan:
+      - method: "average"
+        start: "2001-01-01 00:00:00"
+        end: "2005-12-31 23:00:00"
+    # LeSueur:
+    #   - method: "latest"
+    #     start: "2003-01-01 00:00:00"
+    #     end: "2004-12-31 23:00:00"
+  metrics_output: "analysis_results"
