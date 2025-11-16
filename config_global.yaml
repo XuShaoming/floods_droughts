@@ -81,7 +81,7 @@ streamflow_global_exp1: &STREAMFLOW_GLOBAL_EXP1
     (hist_scaled). Static
     attributes are embedded and concatenated with dynamic inputs at every time step.
 
-streamflow_global_exp1_inference:
+streamflow_global_exp1_inference: &streamflow_global_exp1_inference
   <<: *STREAMFLOW_GLOBAL_EXP1
   description: >
     Inference and analysis configuration for streamflow_global_exp1.
@@ -95,22 +95,6 @@ streamflow_global_exp1_inference:
     Watonwan: [0,1,2,3]
     KettleRiverModels: [0,1,2,3]
   timeseries_plots:
-    # KettleRiverModels:
-    #   - method: "average"
-    #     start: "2001-01-01 00:00:00"
-    #     end: "2005-12-31 23:00:00"
-    # BlueEarth:
-    #   - method: "average"
-    #     start: "2001-01-01 00:00:00"
-    #     end: "2005-12-31 23:00:00"
-    # Watonwan:
-    #   - method: "average"
-    #     start: "2001-01-01 00:00:00"
-    #     end: "2005-12-31 23:00:00"
-    # LeSueur:
-    #   - method: "average"
-    #     start: "2001-01-01 00:00:00"
-    #     end: "2005-12-31 23:00:00"
     KettleRiverModels:
       - method: ["latest", "average"]
         start: "2001-01-01 00:00:00"
@@ -128,3 +112,47 @@ streamflow_global_exp1_inference:
         start: "2001-01-01 00:00:00"
         end: "2005-12-31 23:00:00"
   metrics_output: "analysis_results"
+
+streamflow_global_exp1_inference_train:
+  <<: *streamflow_global_exp1_inference
+  split: ["train"]
+  timeseries_plots:
+    KettleRiverModels:
+      - method: ["latest", "average"]
+        start: "1980-01-01 00:00:00"
+        end: "2000-12-31 23:00:00"
+    BlueEarth:
+      - method: ["latest", "average"]
+        start: "1980-01-01 00:00:00"
+        end: "2000-12-31 23:00:00"
+    Watonwan:
+      - method: ["latest", "average"]
+        start: "1980-01-01 00:00:00"
+        end: "2000-12-31 23:00:00"
+    LeSueur:
+      - method: ["latest", "average"]
+        start: "1980-01-01 00:00:00"
+        end: "2000-12-31 23:00:00"
+
+streamflow_global_exp1_inference_val:
+  <<: *streamflow_global_exp1_inference
+  split: ["val"]
+  timeseries_plots:
+    KettleRiverModels:
+      - method: ["latest", "average"]
+        start: "1975-01-01 00:00:00"
+        end: "1979-12-31 23:00:00"
+    BlueEarth:
+      - method: ["latest", "average"]
+        start: "1975-01-01 00:00:00"
+        end: "1979-12-31 23:00:00"
+    Watonwan:
+      - method: ["latest", "average"]
+        start: "1975-01-01 00:00:00"
+        end: "1979-12-31 23:00:00"
+    LeSueur:
+      - method: ["latest", "average"]
+        start: "1975-01-01 00:00:00"
+        end: "1979-12-31 23:00:00"
+
+

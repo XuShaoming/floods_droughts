@@ -13,7 +13,7 @@ import json
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -609,11 +609,33 @@ def main():
     output_dir = os.path.join(model_root, results_subdir)
     ensure_dir(output_dir)
 
-    dataset_choice = args.dataset or config.get("split", "test")
+    def normalize_splits(value: Optional[Union[str, Sequence[str]]]) -> List[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        return list(value)
+
+    dataset_arg = args.dataset
+    config_split = config.get("split")
+    dataset_choice = dataset_arg if dataset_arg is not None else config_split
     valid_choices = {"train", "val", "test", "all"}
-    if dataset_choice not in valid_choices:
-        raise ValueError(f"Unsupported dataset choice '{dataset_choice}'. Valid options: {sorted(valid_choices)}")
-    splits_to_run = ["train", "val", "test"] if dataset_choice == "all" else [dataset_choice]
+
+    if dataset_arg is not None and dataset_arg not in valid_choices:
+        raise ValueError(f"Unsupported dataset choice '{dataset_arg}'. Valid options: {sorted(valid_choices)}")
+
+    if dataset_arg == "all":
+        splits_to_run = ["train", "val", "test"]
+    elif dataset_arg is not None:
+        splits_to_run = [dataset_arg]
+    else:
+        normalized = normalize_splits(config_split)
+        if not normalized:
+            splits_to_run = ["test"]
+        else:
+            splits_to_run = normalized
+
+    aggregate_all = dataset_arg == "all"
 
     reconstruction_methods = args.reconstruction_methods or config.get("reconstruction_methods") or ["average", "latest"]
     if not reconstruction_methods:
@@ -635,11 +657,12 @@ def main():
         "source_experiment": source_experiment,
         "checkpoint_choice": checkpoint_choice,
         "checkpoint_path": checkpoint_path,
+        "requested_splits": splits_to_run,
         "splits": [],
         "reconstruction_methods": reconstruction_methods,
         "window_file_format": file_format,
         "target_names": target_names,
-        "dataset_choice": dataset_choice,
+        "dataset_choice": dataset_choice if dataset_choice is not None else "test",
         "watersheds_by_split": {},
         "results_subdir": results_subdir,
     }
@@ -684,7 +707,7 @@ def main():
         overall_predictions.append(preds)
         overall_targets.append(targets)
 
-    if overall_predictions and dataset_choice == "all":
+    if overall_predictions and aggregate_all:
         combined_preds = np.concatenate(overall_predictions, axis=0)
         combined_tgts = np.concatenate(overall_targets, axis=0)
         combined_metrics = calculate_metrics(combined_preds, combined_tgts, scaler=None)

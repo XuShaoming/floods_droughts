@@ -10,7 +10,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Union
 
 import matplotlib
 
@@ -280,7 +280,29 @@ def main():
     manifest = load_manifest(results_dir)
     file_format = manifest.get("window_file_format", config.get("window_file_format", "csv"))
     target_names = manifest.get("target_names", combined_config["target_cols"])
-    split = args.split or config.get("split") or manifest.get("dataset_choice", "test")
+
+    def normalize_splits(value: Optional[Union[str, Sequence[str]]]) -> List[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        return list(value)
+
+    manifest_splits = manifest.get("requested_splits") or manifest.get("splits")
+    split_arg = args.split
+    config_split = config.get("split")
+    dataset_choice_manifest = manifest.get("dataset_choice")
+
+    if split_arg == "all":
+        splits_to_analyze = manifest_splits or ["train", "val", "test"]
+    elif split_arg:
+        splits_to_analyze = [split_arg]
+    else:
+        splits_to_analyze = normalize_splits(config_split)
+        if not splits_to_analyze:
+            splits_to_analyze = normalize_splits(dataset_choice_manifest)
+        if not splits_to_analyze:
+            splits_to_analyze = manifest_splits or ["test"]
 
     reconstruction_methods = (
         args.reconstruction_methods
@@ -288,97 +310,124 @@ def main():
         or manifest.get("reconstruction_methods")
         or ["average", "latest"]
     )
-    reconstruction_methods = list(dict.fromkeys(reconstruction_methods))  # preserve order, remove duplicates
-
-    manifest_watersheds = manifest.get("watersheds_by_split", {}).get(split, [])
-    config_watersheds = combined_config.get("watersheds")
-    watersheds = manifest_watersheds or config_watersheds or []
-    if not watersheds:
-        # Fallback: derive from filenames
-        suffix = f"_{split}_windowed_timeseries.{file_format}"
-        watersheds = [
-            f.replace(suffix, "")
-            for f in os.listdir(results_dir)
-            if f.endswith(suffix)
-        ]
-
-    if not watersheds:
-        raise ValueError("No watershed files found to analyze.")
+    reconstruction_methods = [method.lower() for method in reconstruction_methods]
+    reconstruction_methods = list(dict.fromkeys(reconstruction_methods))
 
     metrics_subdir = config.get("metrics_output", "analysis_results")
     analysis_dir = os.path.join(results_dir, metrics_subdir)
-    plots_dir = os.path.join(analysis_dir, "plots")
-    window_plot_dir = os.path.join(plots_dir, "windows")
-    timeseries_plot_dir = os.path.join(plots_dir, "reconstructions")
     ensure_dir(analysis_dir)
-    ensure_dir(plots_dir)
 
     window_plot_cfg: Dict[str, List[int]] = config.get("window_plots", {})
     timeseries_cfg: Dict[str, List[Dict]] = config.get("timeseries_plots", {})
 
-    summary_metrics = {"windowed": {}, "reconstructed": {}}
+    summary_metrics: Dict[str, Dict] = {}
 
-    for watershed in watersheds:
-        ws_key = sanitize_name(watershed)
-        window_file = os.path.join(results_dir, f"{ws_key}_{split}_windowed_timeseries.{file_format}")
-        window_df = load_dataframe(window_file, file_format)
-        if window_df.empty:
-            print(f"Skipping {watershed}: windowed data unavailable.")
+    for split in splits_to_analyze:
+        split_summary = {"windowed": {}, "reconstructed": {}}
+        summary_metrics[split] = split_summary
+
+        split_analysis_dir = os.path.join(analysis_dir, split)
+        split_plots_dir = os.path.join(split_analysis_dir, "plots")
+        window_plot_dir = os.path.join(split_plots_dir, "windows")
+        timeseries_plot_dir = os.path.join(split_plots_dir, "reconstructions")
+        ensure_dir(split_analysis_dir)
+        ensure_dir(split_plots_dir)
+
+        manifest_watersheds = manifest.get("watersheds_by_split", {}).get(split, [])
+        config_watersheds = combined_config.get("watersheds")
+        watersheds = manifest_watersheds or config_watersheds or []
+        if not watersheds:
+            suffix = f"_{split}_windowed_timeseries.{file_format}"
+            watersheds = [
+                f.replace(suffix, "")
+                for f in os.listdir(results_dir)
+                if f.endswith(suffix)
+            ]
+
+        if not watersheds:
+            print(f"No watershed files found to analyze for split '{split}'. Skipping.")
             continue
 
-        window_metrics = compute_metrics(window_df, target_names)
-        summary_metrics["windowed"][watershed] = window_metrics
-        save_metrics(
-            window_metrics,
-            os.path.join(analysis_dir, f"{ws_key}_{split}_windowed_metrics.json"),
-        )
-
-        window_indices = window_plot_cfg.get(watershed, [])
-        if isinstance(window_indices, dict):
-            window_indices = window_indices.get("windows", [])
-        for idx in window_indices:
-            plot_window_series(
-                window_df,
-                watershed,
-                int(idx),
-                target_names,
-                os.path.join(window_plot_dir, f"{ws_key}_window_{idx}.png"),
-            )
-
-        for method in reconstruction_methods:
-            recon_file = os.path.join(results_dir, f"{ws_key}_{split}_reconstructed_{method}.{file_format}")
-            recon_df = load_dataframe(recon_file, file_format)
-            if recon_df.empty:
-                print(f"Skipping {watershed} reconstruction ({method}): file missing or empty.")
+        for watershed in watersheds:
+            ws_key = sanitize_name(watershed)
+            window_file = os.path.join(results_dir, f"{ws_key}_{split}_windowed_timeseries.{file_format}")
+            window_df = load_dataframe(window_file, file_format)
+            if window_df.empty:
+                print(f"Skipping {watershed}: windowed data unavailable for split '{split}'.")
                 continue
 
-            recon_metrics = compute_metrics(recon_df, target_names)
-            summary_metrics["reconstructed"].setdefault(method, {})[watershed] = recon_metrics
+            window_metrics = compute_metrics(window_df, target_names)
+            split_summary["windowed"][watershed] = window_metrics
             save_metrics(
-                recon_metrics,
-                os.path.join(analysis_dir, f"{ws_key}_{split}_reconstructed_{method}_metrics.json"),
+                window_metrics,
+                os.path.join(split_analysis_dir, f"{ws_key}_{split}_windowed_metrics.json"),
             )
+
+            window_indices = window_plot_cfg.get(watershed, [])
+            if isinstance(window_indices, dict):
+                window_indices = window_indices.get("windows", [])
+            for idx in window_indices:
+                plot_window_series(
+                    window_df,
+                    watershed,
+                    int(idx),
+                    target_names,
+                    os.path.join(window_plot_dir, f"{ws_key}_window_{idx}.png"),
+                )
+
+            recon_dfs: Dict[str, pd.DataFrame] = {}
+            for method in reconstruction_methods:
+                recon_file = os.path.join(results_dir, f"{ws_key}_{split}_reconstructed_{method}.{file_format}")
+                recon_df = load_dataframe(recon_file, file_format)
+                if recon_df.empty:
+                    print(f"Skipping {watershed} reconstruction ({method}) for split '{split}': file missing or empty.")
+                    continue
+
+                recon_dfs[method] = recon_df
+                recon_metrics = compute_metrics(recon_df, target_names)
+                split_summary["reconstructed"].setdefault(method, {})[watershed] = recon_metrics
+                save_metrics(
+                    recon_metrics,
+                    os.path.join(split_analysis_dir, f"{ws_key}_{split}_reconstructed_{method}_metrics.json"),
+                )
 
             plot_requests = timeseries_cfg.get(watershed, [])
             if isinstance(plot_requests, dict):
                 plot_requests = [plot_requests]
+
             for idx, request in enumerate(plot_requests):
-                req_method = request.get("method", reconstruction_methods[0])
-                if req_method != method:
-                    continue
+                request_methods = request.get("method")
+                if request_methods is None:
+                    methods_to_plot = reconstruction_methods
+                elif isinstance(request_methods, str):
+                    methods_to_plot = [request_methods]
+                else:
+                    methods_to_plot = list(request_methods)
+                methods_to_plot = [m.lower() for m in methods_to_plot]
+
                 start = pd.to_datetime(request.get("start")) if request.get("start") else None
                 end = pd.to_datetime(request.get("end")) if request.get("end") else None
-                plot_reconstruction_series(
-                    recon_df,
-                    watershed,
-                    method,
-                    target_names,
-                    os.path.join(timeseries_plot_dir, f"{ws_key}_{method}_range_{idx}.png"),
-                    start=start,
-                    end=end,
-                )
 
-    save_metrics(summary_metrics, os.path.join(analysis_dir, "summary_metrics.json"))
+                for method in methods_to_plot:
+                    recon_df = recon_dfs.get(method)
+                    if recon_df is None:
+                        print(
+                            f"Skipping timeseries plot for {watershed} method '{method}' on split '{split}': data unavailable."
+                        )
+                        continue
+                    plot_reconstruction_series(
+                        recon_df,
+                        watershed,
+                        method,
+                        target_names,
+                        os.path.join(timeseries_plot_dir, f"{ws_key}_{method}_range_{idx}.png"),
+                        start=start,
+                        end=end,
+                    )
+
+        save_metrics(split_summary, os.path.join(split_analysis_dir, "summary_metrics.json"))
+
+    save_metrics(summary_metrics, os.path.join(analysis_dir, "summary_metrics_all_splits.json"))
     print(f"\nAnalysis complete. Reports and plots saved to {analysis_dir}")
 
 
