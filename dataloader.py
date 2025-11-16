@@ -568,6 +568,10 @@ class FloodDroughtDataLoader:
         """
         if len(windowed_data) != len(date_windows):
             raise ValueError(f"Number of windows ({len(windowed_data)}) must match number of date windows ({len(date_windows)})")
+        aggregation_method = aggregation_method.lower()
+        supported_methods = {'mean', 'median', 'last', 'first'}
+        if aggregation_method not in supported_methods:
+            raise ValueError(f"Unknown aggregation method: {aggregation_method}")
         
         # Determine if this is many-to-many or many-to-one based on data shape
         if windowed_data.ndim == 3:
@@ -586,9 +590,13 @@ class FloodDroughtDataLoader:
         print(f"Mode: {'many-to-many' if is_many_to_many else 'many-to-one'}")
         print(f"Features: {n_features}")
         
+        # Ensure windows are processed chronologically for deterministic reconstruction
+        window_entries = list(zip(windowed_data, date_windows))
+        window_entries.sort(key=lambda item: item[1][0] if len(item[1]) > 0 else pd.Timestamp.min)
+
         # Collect all unique timestamps and create mapping
         all_timestamps = set()
-        for date_window in date_windows:
+        for _, date_window in window_entries:
             if is_many_to_many:
                 # For many-to-many, use all dates in the window
                 all_timestamps.update(date_window)
@@ -605,41 +613,57 @@ class FloodDroughtDataLoader:
         
         # Initialize arrays to store values and counts
         # Shape: (n_timestamps, n_features)
-        values_sum = np.zeros((n_timestamps, n_features))
+        compute_mean = aggregation_method == 'mean'
+        collect_values = aggregation_method in {'median', 'last', 'first'}
+        values_sum = np.zeros((n_timestamps, n_features)) if compute_mean else None
         values_count = np.zeros((n_timestamps, n_features))
+        value_records: Dict[int, List[np.ndarray]] = {} if collect_values else None
         
         # Create timestamp to index mapping for efficiency
         timestamp_to_idx = {ts: i for i, ts in enumerate(all_timestamps)}
         
         # Process each window
-        for window_idx, (data_window, date_window) in enumerate(zip(windowed_data, date_windows)):
+        for window_idx, (data_window, date_window) in enumerate(window_entries):
             if is_many_to_many:
                 # Many-to-many: each timestep in window has a prediction
                 for time_step, (values, timestamp) in enumerate(zip(data_window, date_window)):
                     ts_idx = timestamp_to_idx[timestamp]
-                    values_sum[ts_idx] += values
+                    value_array = np.array(values, dtype=np.float64)
+                    if compute_mean:
+                        values_sum[ts_idx] += value_array
+                    if collect_values:
+                        value_records.setdefault(ts_idx, []).append(value_array.copy())
                     values_count[ts_idx] += 1
             else:
                 # Many-to-one: only the last timestamp has a prediction
                 target_timestamp = date_window[-1]
                 ts_idx = timestamp_to_idx[target_timestamp]
-                values_sum[ts_idx] += data_window
+                value_array = np.array(data_window, dtype=np.float64)
+                if compute_mean:
+                    values_sum[ts_idx] += value_array
+                if collect_values:
+                    value_records.setdefault(ts_idx, []).append(value_array.copy())
                 values_count[ts_idx] += 1
         
         # Handle aggregation
         reconstructed_values = np.zeros((n_timestamps, n_features))
-        
         if aggregation_method == 'mean':
-            # Avoid division by zero
             mask = values_count > 0
             reconstructed_values[mask] = values_sum[mask] / values_count[mask]
-        elif aggregation_method in ['last', 'first']:
-            # For last/first, we would need to track order, defaulting to mean
-            print(f"Warning: {aggregation_method} aggregation not fully implemented. Using mean instead.")
-            mask = values_count > 0
-            reconstructed_values[mask] = values_sum[mask] / values_count[mask]
-        else:
-            raise ValueError(f"Unknown aggregation method: {aggregation_method}")
+        elif aggregation_method == 'median':
+            if not collect_values or value_records is None:
+                raise RuntimeError("Median aggregation requires collected value records")
+            for ts_idx, records in value_records.items():
+                stacked = np.stack(records, axis=0)
+                reconstructed_values[ts_idx] = np.median(stacked, axis=0)
+        elif aggregation_method in {'last', 'first'}:
+            if not collect_values or value_records is None:
+                raise RuntimeError(f"{aggregation_method} aggregation requires collected value records")
+            for ts_idx, records in value_records.items():
+                if aggregation_method == 'last':
+                    reconstructed_values[ts_idx] = records[-1]
+                else:
+                    reconstructed_values[ts_idx] = records[0]
         
         # Create DataFrames
         time_series_df = pd.DataFrame(

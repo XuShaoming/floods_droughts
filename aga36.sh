@@ -49,12 +49,25 @@
 # python inference.py --model-dir experiments/streamflow_exp2 --model-trained best_model.pth --dataset val --analysis
 
 
-python train_global.py --config config_global.yaml --experiment streamflow_global_exp1_test
-python train_global.py --config config_global.yaml --experiment streamflow_global_exp1
+# python train_global.py --config config_global.yaml --experiment streamflow_global_exp1_test
+# python train_global.py --config config_global.yaml --experiment streamflow_global_exp1
 
 
-python inference_global.py --config config_global.yaml --experiment streamflow_global_exp1_inference
-# python analysis_global.py --config config_global.yaml --experiment streamflow_global_exp1_inference
-python analysis_global.py --config config_global.yaml --experiment streamflow_global_exp1_inference_train
-python analysis_global.py --config config_global.yaml --experiment streamflow_global_exp1_inference_val
-# python inference_global.py --model-dir <exp_dir> --dataset test
+# python inference_global.py --config config_global.yaml --experiment streamflow_global_exp1_inference
+# # python analysis_global.py --config config_global.yaml --experiment streamflow_global_exp1_inference
+# python analysis_global.py --config config_global.yaml --experiment streamflow_global_exp1_inference_train
+# python analysis_global.py --config config_global.yaml --experiment streamflow_global_exp1_inference_val
+# # python inference_global.py --model-dir <exp_dir> --dataset test
+
+
+# {
+# python inference.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset test &
+# python inference.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset val &
+# python inference.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset train &
+# wait
+# }
+
+
+python analysis.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset test &
+python analysis.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset val & 
+python analysis.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset train &
