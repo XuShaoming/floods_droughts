@@ -127,9 +127,29 @@ def plot_window_series(
     target_names: Sequence[str],
     output_path: str,
 ):
-    subset = df[df["window_index"] == window_index].sort_values("timestep")
+    """
+    Plot time series for a specific window.
+    
+    Args:
+        df: DataFrame with windowed data for the watershed.
+        watershed: Watershed name for plot title.
+        window_index: Relative window index (0-based within this watershed).
+        target_names: List of target variable names.
+        output_path: Path to save the plot.
+    """
+    # Get unique window indices for this watershed and sort them
+    unique_windows = sorted(df["window_index"].unique())
+    
+    # Map relative window_index to actual global window_index
+    if window_index < 0 or window_index >= len(unique_windows):
+        print(f"Warning: Window {window_index} out of range for {watershed} (has {len(unique_windows)} windows)")
+        return
+    
+    actual_window_index = unique_windows[window_index]
+    subset = df[df["window_index"] == actual_window_index].sort_values("timestep")
+    
     if subset.empty:
-        print(f"Warning: No samples for {watershed} window {window_index}")
+        print(f"Warning: No samples for {watershed} window {window_index} (global index {actual_window_index})")
         return
 
     plt.figure(figsize=(10, 4))
@@ -141,7 +161,7 @@ def plot_window_series(
         plt.plot(subset["timestamp"], subset[obs_col], label=f"Observed {name}", linestyle="--")
         plt.plot(subset["timestamp"], subset[pred_col], label=f"Predicted {name}")
 
-    plt.title(f"{watershed} - Window {window_index}")
+    plt.title(f"{watershed} - Window {window_index} (global index: {actual_window_index})")
     plt.xlabel("Timestamp")
     plt.ylabel("Value")
     plt.legend()
