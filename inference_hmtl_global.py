@@ -97,28 +97,46 @@ def group_windows_by_watershed(predictions, targets, metadata):
 
 
 def build_window_dataframe(entries, target_names, split_name):
-    rows = []
+    """
+    Vectorized construction of the windowed dataframe to avoid per-timestep Python loops.
+    """
+    frames: List[pd.DataFrame] = []
+
     for entry in entries:
-        window_index = entry["window_index"]
-        scenario = entry.get("scenario")
+        dates = entry.get("dates", [])
+        if dates is None or len(dates) == 0:
+            continue
+
+        window_len = len(dates)
         pred_array = entry["pred"]
         obs_array = entry["obs"]
-        dates = entry.get("dates", [])
+        if pred_array.shape[0] != window_len or obs_array.shape[0] != window_len:
+            continue
 
-        for timestep, timestamp in enumerate(dates):
-            row = {
-                "split": split_name,
-                "window_index": window_index,
-                "timestep": timestep,
-                "timestamp": pd.Timestamp(timestamp),
-            }
-            if scenario is not None:
-                row["scenario"] = scenario
-            for idx, name in enumerate(target_names):
-                row[f"pred_{name}"] = pred_array[timestep, idx]
-                row[f"obs_{name}"] = obs_array[timestep, idx]
-            rows.append(row)
-    return pd.DataFrame(rows)
+        data_dict: Dict[str, Union[np.ndarray, List]] = {
+            "split": np.full(window_len, split_name),
+            "window_index": np.full(window_len, entry["window_index"]),
+            "timestep": np.arange(window_len, dtype=np.int32),
+            "timestamp": pd.to_datetime(dates),
+        }
+
+        scenario = entry.get("scenario")
+        if scenario is not None:
+            data_dict["scenario"] = np.full(window_len, scenario)
+
+        for idx, name in enumerate(target_names):
+            data_dict[f"pred_{name}"] = pred_array[:, idx]
+            data_dict[f"obs_{name}"] = obs_array[:, idx]
+
+        frames.append(pd.DataFrame(data_dict))
+
+    if not frames:
+        columns = ["split", "window_index", "timestep", "timestamp"] + [
+            col for name in target_names for col in (f"pred_{name}", f"obs_{name}")
+        ]
+        return pd.DataFrame(columns=columns)
+
+    return pd.concat(frames, ignore_index=True)
 
 
 def reconstruct_time_series(entries, target_names, method: str, stride: Optional[int], window_size: Optional[int]):
@@ -188,17 +206,23 @@ def process_split_results(
     grouped = group_windows_by_watershed(predictions, targets, metadata)
     saved_paths: Dict[str, Dict[str, str]] = {}
 
-    for watershed, entries in grouped.items():
+    total_watersheds = len(grouped)
+    for idx, (watershed, entries) in enumerate(grouped.items(), start=1):
+        print(
+            f"[{split_name}] Processing watershed {watershed} "
+            f"({idx}/{total_watersheds}, {len(entries)} windows)"
+        )
         watershed_key = watershed.replace(" ", "_")
         window_df = build_window_dataframe(entries, target_names, split_name)
         window_filename = f"{watershed_key}_{split_name}_windowed_timeseries.{file_format}"
         window_path = os.path.join(output_dir, window_filename)
         save_dataframe(window_df.sort_values(["window_index", "timestep"]), window_path, file_format)
-
+        print(f"[{split_name}] Saved windowed timeseries for watershed: {watershed} at {window_path}")
         saved_paths.setdefault(watershed, {})
         saved_paths[watershed]["windowed"] = window_path
 
         for method in reconstruction_methods:
+            print(f"[{split_name}] Reconstructing time series for watershed: {watershed} using method: {method}")
             recon_df = reconstruct_time_series(entries, target_names, method, stride=stride, window_size=window_size)
             recon_df = recon_df.sort_values("timestamp").reset_index(drop=True)
             recon_filename = f"{watershed_key}_{split_name}_reconstructed_{method}.{file_format}"
@@ -244,7 +268,7 @@ def load_model(
         static_dropout=model_config.get("static_dropout", 0.0),
     ).to(device)
 
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     state_dict = checkpoint.get("model_state_dict", checkpoint)
     model.load_state_dict(state_dict)
     model.eval()
@@ -503,18 +527,27 @@ def main():
             print(f"Skipping {split_name} split (no samples).")
             continue
 
+        print(f"[{split_name}] Running model forward pass...")
         final_preds, final_targets, intermediate_preds, intermediate_targets = run_inference(
             model, loader, device, intermediate_names
         )
+        print(
+            f"[{split_name}] Forward pass complete. Windows: {final_preds.shape[0]}, "
+            f"Seq len: {final_preds.shape[1] if final_preds.ndim >= 2 else 0}"
+        )
+
+        print(f"[{split_name}] Denormalizing predictions/targets...")
         final_preds = denormalize_array(final_preds, data_loader.target_scaler)
         final_targets = denormalize_array(final_targets, data_loader.target_scaler)
         intermediate_preds = denormalize_array(intermediate_preds, data_loader.intermediate_scaler)
         intermediate_targets = denormalize_array(intermediate_targets, data_loader.intermediate_scaler)
+        print(f"[{split_name}] Denormalization complete.")
 
         combined_preds = concatenate_targets(intermediate_preds, final_preds)
         combined_targets = concatenate_targets(intermediate_targets, final_targets)
 
         metadata = data_loader.metadata.get(split_name, {})
+        print(f"[{split_name}] Saving windowed and reconstructed outputs...")
         split_paths = process_split_results(
             split_name,
             combined_preds,

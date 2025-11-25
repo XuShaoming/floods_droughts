@@ -78,29 +78,39 @@
 # wait
 # }
 
+# {
+# python inference.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
+# python inference.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset val &
+# python inference.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+# wait
+# }
+# {
+# python analysis.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
+# python analysis.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset val & 
+# python analysis.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+# wait
+# }
+
+# {
+# python inference.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
+# python inference.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset val &
+# python inference.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+# wait
+# }
+# {
+# python analysis.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
+# python analysis.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset val & 
+# python analysis.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+# wait
+# }
+
 {
-python inference.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
-python inference.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset val &
-python inference.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
-wait
-}
-{
-python analysis.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
-python analysis.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset val & 
-python analysis.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_val &
+python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_train &
 wait
 }
 
 {
-python inference.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
-python inference.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset val &
-python inference.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis --split test val train &
 wait
 }
-{
-python analysis.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
-python analysis.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset val & 
-python analysis.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
-wait
-}
-
