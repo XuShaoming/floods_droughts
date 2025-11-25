@@ -69,7 +69,7 @@ base_global_config: &BASE_GLOBAL_CONFIG
   save_every_n_epochs: 25
   tensorboard_log: true
   seed: 42
-  device: "auto"
+  device: "auto"           # Set to "cuda:0", "cuda:1", etc. to pin a specific GPU
 
 default_experiment: streamflow_global_exp1
 
@@ -80,6 +80,10 @@ streamflow_global_exp1: &STREAMFLOW_GLOBAL_EXP1
     Watonwan, and KettleRiverModels watersheds across the historical scenario
     (hist_scaled). Static
     attributes are embedded and concatenated with dynamic inputs at every time step.
+
+streamflow_global_exp1_test:
+  <<: *STREAMFLOW_GLOBAL_EXP1
+  epochs: 5
 
 streamflow_global_exp1_inference: &streamflow_global_exp1_inference
   <<: *STREAMFLOW_GLOBAL_EXP1
@@ -142,7 +146,69 @@ streamflow_global_exp1_inference_val:
       - method: ["latest", "average"]
         start: "1975-01-01 00:00:00"
         end: "1979-12-31 23:00:00"
+
+streamflow_hmtl_global: &STREAMFLOW_HMTL_GLOBAL
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Hierarchical multi-task global model jointly predicting intermediate
+    hydrologic variables and final streamflow across BlueEarth, LeSueur,
+    Watonwan, and KettleRiverModels watersheds for hist_scaled scenarios.
+  training_strategy: "hmtl_global"
+  intermediate_targets: ["PET", "ET", "SUPY", "WYIE", "SNOW", "TWS", "LZS", "AGW"]
+  scale_intermediate_targets: true
+  loss_weights:
+    final: 1.0
+    intermediate:
+      default: 1.0
+      PET: 0.8
+      ET: 0.8
+  static_embedding_layers: [128, 64]
+  static_dropout: 0.1
+  device: "cuda:1"
+
+streamflow_hmtl_global_test:
+  <<: *STREAMFLOW_HMTL_GLOBAL
+  epochs: 3
+
+streamflow_hmtl_global_inference: &STREAMFLOW_HMTL_GLOBAL_INFERENCE
+  <<: *STREAMFLOW_HMTL_GLOBAL
+  description: >
+    Inference configuration for streamflow_hmtl_global. Runs predictions for
+    train/val/test splits and saves windowed plus reconstructed series with
+    both intermediate and final targets.
+  source_experiment: "streamflow_hmtl_global"
+  checkpoint_files:
+    best: "best_model.pth"
+    final: "final_model.pth"
+  checkpoint_choice: "best"
+  split: ["test"]
+  reconstruction_methods: ["average", "latest"]
+  window_file_format: "csv"
+  results_subdir: "best_results"
+
+streamflow_hmtl_global_inference_all:
+  <<: *STREAMFLOW_HMTL_GLOBAL_INFERENCE
+  split: ["train", "val", "test"]
+  results_subdir: "all_results"
+
+streamflow_hmtl_global_analysis:
+  <<: *STREAMFLOW_HMTL_GLOBAL_INFERENCE
+  description: >
+    Analysis template for hierarchical global inference outputs.
+  source_experiment: "streamflow_hmtl_global"
+  metrics_output: "analysis_results"
+  window_plots:
+    KettleRiverModels: [0, 3, 5]
+    BlueEarth: [1, 4]
+  timeseries_plots:
+    KettleRiverModels:
+      - method: ["latest"]
+        start: "2001-01-01 00:00:00"
+        end: "2005-12-31 23:00:00"
     BlueEarth:
+      - method: ["average"]
+        start: "2001-01-01 00:00:00"
+        end: "2005-12-31 23:00:00"
       - method: ["latest", "average"]
         start: "1975-01-01 00:00:00"
         end: "1979-12-31 23:00:00"
@@ -154,5 +220,3 @@ streamflow_global_exp1_inference_val:
       - method: ["latest", "average"]
         start: "1975-01-01 00:00:00"
         end: "1979-12-31 23:00:00"
-
-

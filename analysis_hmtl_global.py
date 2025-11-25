@@ -1,0 +1,431 @@
+#!/usr/bin/env python3
+"""
+Analysis script for hierarchical global inference outputs.
+
+Extends analysis_global.py by allowing per-target-group (intermediate vs final)
+metrics and plots.
+"""
+
+import argparse
+import json
+import os
+from pathlib import Path
+from typing import Dict, List, Optional, Sequence, Union
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import yaml
+
+
+def get_experiment_config(config_path: str, experiment: Optional[str]):
+    with open(config_path, "r") as file:
+        full_config = yaml.safe_load(file)
+
+    if experiment:
+        if experiment not in full_config:
+            available = [k for k in full_config.keys() if not k.startswith("base_") and k != "default_experiment"]
+            raise ValueError(f"Experiment '{experiment}' not found. Available: {available}")
+        return full_config[experiment], experiment, full_config
+
+    default_exp = full_config.get("default_experiment")
+    if default_exp and default_exp in full_config:
+        return full_config[default_exp], default_exp, full_config
+
+    for key, value in full_config.items():
+        if key.startswith("base_") or key == "default_experiment":
+            continue
+        return value, key, full_config
+
+    raise ValueError("No experiments found in configuration file.")
+
+
+def ensure_dir(path: str):
+    os.makedirs(path, exist_ok=True)
+
+
+def load_manifest(results_dir: str) -> Dict:
+    manifest_path = os.path.join(results_dir, "results_manifest.json")
+    if os.path.exists(manifest_path):
+        with open(manifest_path, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def sanitize_name(name: str) -> str:
+    return name.replace(" ", "_")
+
+
+def load_dataframe(path: str, file_format: str) -> pd.DataFrame:
+    if not os.path.exists(path):
+        print(f"Warning: File not found {path}")
+        return pd.DataFrame()
+    if file_format == "csv":
+        df = pd.read_csv(path)
+    elif file_format == "parquet":
+        df = pd.read_parquet(path)
+    else:
+        raise ValueError(f"Unsupported file format '{file_format}'")
+
+    if "timestamp" in df.columns:
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+    return df
+
+
+def basic_metrics(pred: np.ndarray, obs: np.ndarray) -> Dict[str, float]:
+    if pred.size == 0:
+        return {"MSE": np.nan, "RMSE": np.nan, "MAE": np.nan, "R2": np.nan, "MAPE": np.nan}
+
+    mse = float(np.mean((pred - obs) ** 2))
+    rmse = float(np.sqrt(mse))
+    mae = float(np.mean(np.abs(pred - obs)))
+    ss_res = float(np.sum((obs - pred) ** 2))
+    ss_tot = float(np.sum((obs - np.mean(obs)) ** 2))
+    r2 = float(1 - ss_res / ss_tot) if ss_tot != 0 else float("nan")
+    mask = obs != 0
+    mape = float(np.mean(np.abs((obs[mask] - pred[mask]) / obs[mask])) * 100) if np.any(mask) else float("nan")
+    return {"MSE": mse, "RMSE": rmse, "MAE": mae, "R2": r2, "MAPE": mape}
+
+
+def compute_metrics(df: pd.DataFrame, target_names: Sequence[str]) -> Dict[str, Dict[str, float]]:
+    metrics = {}
+    flat_preds = []
+    flat_obs = []
+    for name in target_names:
+        pred_col = f"pred_{name}"
+        obs_col = f"obs_{name}"
+        if pred_col not in df.columns or obs_col not in df.columns:
+            continue
+        preds = df[pred_col].to_numpy()
+        obs = df[obs_col].to_numpy()
+        metrics[name] = basic_metrics(preds, obs)
+        flat_preds.append(preds)
+        flat_obs.append(obs)
+
+    if flat_preds:
+        stacked_preds = np.concatenate(flat_preds)
+        stacked_obs = np.concatenate(flat_obs)
+        metrics["overall"] = basic_metrics(stacked_preds, stacked_obs)
+    return metrics
+
+
+def save_metrics(metrics: Dict, path: str):
+    ensure_dir(os.path.dirname(path))
+    with open(path, "w") as f:
+        json.dump(metrics, f, indent=2)
+
+
+def plot_window_series(
+    df: pd.DataFrame,
+    watershed: str,
+    window_index: int,
+    target_names: Sequence[str],
+    output_path: str,
+):
+    unique_windows = sorted(df["window_index"].unique())
+
+    if window_index < 0 or window_index >= len(unique_windows):
+        print(f"Warning: Window {window_index} out of range for {watershed} (has {len(unique_windows)} windows)")
+        return
+
+    actual_window_index = unique_windows[window_index]
+    subset = df[df["window_index"] == actual_window_index].sort_values("timestep")
+
+    if subset.empty:
+        print(f"Warning: No samples for {watershed} window {window_index} (global index {actual_window_index})")
+        return
+
+    plt.figure(figsize=(10, 4))
+    for name in target_names:
+        pred_col = f"pred_{name}"
+        obs_col = f"obs_{name}"
+        if pred_col not in subset.columns or obs_col not in subset.columns:
+            continue
+        plt.plot(subset["timestamp"], subset[obs_col], label=f"Observed {name}", linestyle="--")
+        plt.plot(subset["timestamp"], subset[pred_col], label=f"Predicted {name}")
+
+    plt.title(f"{watershed} - Window {window_index} (global index: {actual_window_index})")
+    plt.xlabel("Timestamp")
+    plt.ylabel("Value")
+    plt.legend()
+    plt.tight_layout()
+    ensure_dir(os.path.dirname(output_path))
+    plt.savefig(output_path)
+    plt.close()
+
+
+def plot_reconstruction_series(
+    df: pd.DataFrame,
+    watershed: str,
+    method: str,
+    target_names: Sequence[str],
+    output_path: str,
+    start: Optional[pd.Timestamp] = None,
+    end: Optional[pd.Timestamp] = None,
+):
+    subset = df.sort_values("timestamp")
+    if start is not None:
+        subset = subset[subset["timestamp"] >= start]
+    if end is not None:
+        subset = subset[subset["timestamp"] <= end]
+
+    if subset.empty:
+        print(f"Warning: No samples for {watershed} reconstruction ({method}) in requested range.")
+        return
+
+    plt.figure(figsize=(12, 4))
+    for name in target_names:
+        pred_col = f"pred_{name}"
+        obs_col = f"obs_{name}"
+        if pred_col not in subset.columns or obs_col not in subset.columns:
+            continue
+        plt.plot(subset["timestamp"], subset[obs_col], label=f"Observed {name}", linestyle="--")
+        plt.plot(subset["timestamp"], subset[pred_col], label=f"Predicted {name}")
+
+    plt.title(f"{watershed} - Reconstruction ({method})")
+    plt.xlabel("Timestamp")
+    plt.ylabel("Value")
+    plt.legend()
+    plt.tight_layout()
+    ensure_dir(os.path.dirname(output_path))
+    plt.savefig(output_path)
+    plt.close()
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Analyze hierarchical global inference outputs.")
+    parser.add_argument("--config", type=str, default="config_global.yaml", help="Path to configuration file.")
+    parser.add_argument(
+        "--experiment",
+        type=str,
+        default="streamflow_hmtl_global_inference",
+        help="Inference experiment entry to use from the config file.",
+    )
+    parser.add_argument("--source-experiment", type=str, default=None, help="Override source experiment directory.")
+    parser.add_argument("--results-subdir", type=str, default=None, help="Override results sub-directory.")
+    parser.add_argument("--checkpoint-file", type=str, default=None, help="Checkpoint filename to infer results folder.")
+    parser.add_argument(
+        "--checkpoint-choice",
+        type=str,
+        default=None,
+        help="If multiple checkpoints are defined, pick which one to analyze.",
+    )
+    parser.add_argument("--split", type=str, default=None, help="Dataset split to analyze (train/val/test).")
+    parser.add_argument(
+        "--reconstruction-methods",
+        type=str,
+        nargs="+",
+        default=None,
+        help="Subset of reconstruction methods to analyze.",
+    )
+    parser.add_argument(
+        "--target-group",
+        type=str,
+        default="all",
+        choices=["all", "final", "intermediate"],
+        help="Filter targets for metrics/plots.",
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    config, exp_name, full_config = get_experiment_config(args.config, args.experiment)
+    print(f"Analyzing inference experiment: {exp_name}")
+
+    source_experiment = args.source_experiment or config.get("source_experiment") or config.get("source_experiment_name")
+    if not source_experiment:
+        raise ValueError("source_experiment must be specified for analysis.")
+    source_config = full_config.get(source_experiment)
+    if source_config is None:
+        raise ValueError(f"source_experiment '{source_experiment}' not found in {args.config}.")
+
+    combined_config: Dict = {}
+    combined_config.update(source_config)
+    combined_config.update(config)
+
+    checkpoint_spec = args.checkpoint_file or config.get("checkpoint_files") or config.get("checkpoint_file")
+    checkpoint_choice = args.checkpoint_choice or config.get("checkpoint_choice")
+    checkpoint_name = None
+
+    if args.checkpoint_file:
+        checkpoint_name = args.checkpoint_file
+    elif isinstance(checkpoint_spec, dict):
+        choice = checkpoint_choice or "best"
+        checkpoint_name = checkpoint_spec.get(choice)
+        if checkpoint_name is None:
+            raise ValueError(f"Checkpoint choice '{choice}' not found in checkpoint_files.")
+    elif isinstance(checkpoint_spec, str):
+        checkpoint_name = checkpoint_spec
+    else:
+        checkpoint_name = "best_model.pth"
+
+    derived_subdir = f"{Path(checkpoint_name).stem}_results"
+    results_subdir = args.results_subdir or config.get("results_subdir") or derived_subdir
+
+    results_dir = os.path.join(combined_config["save_dir"], source_experiment, results_subdir)
+    if not os.path.exists(results_dir):
+        raise FileNotFoundError(f"Results directory not found: {results_dir}")
+
+    manifest = load_manifest(results_dir)
+    file_format = manifest.get("window_file_format", config.get("window_file_format", "csv"))
+
+    final_targets = manifest.get("final_targets", combined_config["target_cols"])
+    intermediate_targets = manifest.get("intermediate_targets", combined_config.get("intermediate_targets", []))
+
+    if args.target_group == "final":
+        target_names = final_targets
+    elif args.target_group == "intermediate":
+        target_names = intermediate_targets
+    else:
+        target_names = manifest.get("target_names", intermediate_targets + final_targets)
+
+    def normalize_splits(value: Optional[Union[str, Sequence[str]]]) -> List[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        return list(value)
+
+    manifest_splits = manifest.get("requested_splits") or manifest.get("splits")
+    split_arg = args.split
+    config_split = config.get("split")
+    dataset_choice_manifest = manifest.get("dataset_choice")
+
+    if split_arg == "all":
+        splits_to_analyze = manifest_splits or ["train", "val", "test"]
+    elif split_arg:
+        splits_to_analyze = [split_arg]
+    else:
+        splits_to_analyze = normalize_splits(config_split)
+        if not splits_to_analyze:
+            splits_to_analyze = normalize_splits(dataset_choice_manifest)
+        if not splits_to_analyze:
+            splits_to_analyze = manifest_splits or ["test"]
+
+    reconstruction_methods = (
+        args.reconstruction_methods
+        or config.get("reconstruction_methods")
+        or manifest.get("reconstruction_methods")
+        or ["average", "latest"]
+    )
+    reconstruction_methods = [method.lower() for method in reconstruction_methods]
+    reconstruction_methods = list(dict.fromkeys(reconstruction_methods))
+
+    metrics_subdir = config.get("metrics_output", "analysis_results")
+    analysis_dir = os.path.join(results_dir, metrics_subdir)
+    ensure_dir(analysis_dir)
+
+    window_plot_cfg: Dict[str, List[int]] = config.get("window_plots", {})
+    timeseries_cfg: Dict[str, List[Dict]] = config.get("timeseries_plots", {})
+
+    summary_metrics: Dict[str, Dict] = {}
+
+    for split in splits_to_analyze:
+        split_summary = {"windowed": {}, "reconstructed": {}}
+        summary_metrics[split] = split_summary
+
+        split_analysis_dir = os.path.join(analysis_dir, split)
+        split_plots_dir = os.path.join(split_analysis_dir, "plots")
+        window_plot_dir = os.path.join(split_plots_dir, "windows")
+        timeseries_plot_dir = os.path.join(split_plots_dir, "reconstructions")
+        ensure_dir(split_analysis_dir)
+        ensure_dir(split_plots_dir)
+
+        manifest_watersheds = manifest.get("watersheds_by_split", {}).get(split, [])
+        config_watersheds = combined_config.get("watersheds")
+        watersheds = manifest_watersheds or config_watersheds or []
+        if not watersheds:
+            suffix = f"_{split}_windowed_timeseries.{file_format}"
+            watersheds = [
+                f.replace(suffix, "")
+                for f in os.listdir(results_dir)
+                if f.endswith(suffix)
+            ]
+
+        if not watersheds:
+            print(f"No watershed files found to analyze for split '{split}'. Skipping.")
+            continue
+
+        for watershed in watersheds:
+            ws_key = sanitize_name(watershed)
+            window_file = os.path.join(results_dir, f"{ws_key}_{split}_windowed_timeseries.{file_format}")
+            window_df = load_dataframe(window_file, file_format)
+            if window_df.empty:
+                print(f"Skipping {watershed}: windowed data unavailable for split '{split}'.")
+                continue
+
+            window_metrics = compute_metrics(window_df, target_names)
+            split_summary["windowed"][watershed] = window_metrics
+            save_metrics(
+                window_metrics,
+                os.path.join(split_analysis_dir, f"{ws_key}_{split}_windowed_metrics.json"),
+            )
+
+            window_indices = window_plot_cfg.get(watershed, [])
+            if isinstance(window_indices, dict):
+                window_indices = window_indices.get("windows", [])
+            for idx in window_indices:
+                plot_window_series(
+                    window_df,
+                    watershed,
+                    int(idx),
+                    target_names,
+                    os.path.join(window_plot_dir, f"{ws_key}_window_{idx}.png"),
+                )
+
+            recon_dfs: Dict[str, pd.DataFrame] = {}
+            for method in reconstruction_methods:
+                recon_file = os.path.join(results_dir, f"{ws_key}_{split}_reconstructed_{method}.{file_format}")
+                recon_df = load_dataframe(recon_file, file_format)
+                if recon_df.empty:
+                    print(f"Skipping {watershed} reconstruction ({method}) for split '{split}': file missing or empty.")
+                    continue
+
+                recon_dfs[method] = recon_df
+                recon_metrics = compute_metrics(recon_df, target_names)
+                split_summary["reconstructed"].setdefault(method, {})[watershed] = recon_metrics
+                save_metrics(
+                    recon_metrics,
+                    os.path.join(split_analysis_dir, f"{ws_key}_{split}_reconstructed_{method}_metrics.json"),
+                )
+
+            plot_requests = timeseries_cfg.get(watershed, [])
+            if isinstance(plot_requests, dict):
+                plot_requests = [plot_requests]
+
+            for idx, request in enumerate(plot_requests):
+                request_methods = request.get("method")
+                if request_methods is None:
+                    request_methods = list(recon_dfs.keys())
+                elif isinstance(request_methods, str):
+                    request_methods = [request_methods]
+
+                request_start = pd.Timestamp(request.get("start")) if request.get("start") else None
+                request_end = pd.Timestamp(request.get("end")) if request.get("end") else None
+
+                for method in request_methods:
+                    recon_df = recon_dfs.get(method)
+                    if recon_df is None:
+                        continue
+                    plot_reconstruction_series(
+                        recon_df,
+                        watershed,
+                        method,
+                        target_names,
+                        os.path.join(timeseries_plot_dir, f"{ws_key}_{method}_plot_{idx}.png"),
+                        start=request_start,
+                        end=request_end,
+                    )
+
+    summary_path = os.path.join(analysis_dir, "summary_metrics.json")
+    with open(summary_path, "w") as f:
+        json.dump(summary_metrics, f, indent=2)
+    print(f"Saved analysis artifacts to {analysis_dir}")
+
+
+if __name__ == "__main__":
+    main()

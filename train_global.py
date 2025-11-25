@@ -33,6 +33,36 @@ from train import (
 )
 
 
+def resolve_device(device_cfg):
+    """
+    Resolve device specification from config/CLI allowing GPU index selection.
+    """
+    if device_cfg is None or device_cfg == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if isinstance(device_cfg, int):
+        if torch.cuda.is_available():
+            return torch.device(f"cuda:{device_cfg}")
+        return torch.device("cpu")
+
+    if isinstance(device_cfg, str):
+        trimmed = device_cfg.strip().lower()
+        if trimmed.isdigit():
+            if torch.cuda.is_available():
+                return torch.device(f"cuda:{trimmed}")
+            return torch.device("cpu")
+        if trimmed in {"cpu", "cuda"}:
+            if trimmed == "cuda" and not torch.cuda.is_available():
+                return torch.device("cpu")
+            return torch.device(trimmed)
+        # allow explicit strings like "cuda:1"
+        if trimmed.startswith("cuda:") and not torch.cuda.is_available():
+            return torch.device("cpu")
+        return torch.device(device_cfg)
+
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def train_epoch(
     model: CTLSTM,
     dataloader: torch.utils.data.DataLoader,
@@ -159,10 +189,7 @@ def main():
     os.makedirs(save_dir, exist_ok=True)
 
     device_cfg = config.get("device", "auto")
-    if device_cfg == "auto":
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        device = torch.device(device_cfg)
+    device = resolve_device(device_cfg)
     print(f"Using device: {device}")
 
     dataset_splits = config.get("dataset_splits")

@@ -26,6 +26,32 @@ from models.CTLSTM import CTLSTM
 from train import calculate_metrics
 
 
+def resolve_device(device_cfg):
+    if device_cfg is None or device_cfg == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if isinstance(device_cfg, int):
+        if torch.cuda.is_available():
+            return torch.device(f"cuda:{device_cfg}")
+        return torch.device("cpu")
+
+    if isinstance(device_cfg, str):
+        trimmed = device_cfg.strip().lower()
+        if trimmed.isdigit():
+            if torch.cuda.is_available():
+                return torch.device(f"cuda:{trimmed}")
+            return torch.device("cpu")
+        if trimmed in {"cpu", "cuda"}:
+            if trimmed == "cuda" and not torch.cuda.is_available():
+                return torch.device("cpu")
+            return torch.device(trimmed)
+        if trimmed.startswith("cuda:") and not torch.cuda.is_available():
+            return torch.device("cpu")
+        return torch.device(device_cfg)
+
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def get_experiment_config(config_path: str, experiment: Optional[str]) -> Tuple[Dict, str, Dict]:
     """
     Load experiment configuration from YAML file.
@@ -63,7 +89,11 @@ def get_experiment_config(config_path: str, experiment: Optional[str]) -> Tuple[
     raise ValueError("No experiments found in configuration file.")
 
 
-def load_model(model_dir: str, checkpoint_name: str) -> Tuple[CTLSTM, Dict, Dict, torch.device, str]:
+def load_model(
+    model_dir: str,
+    checkpoint_name: str,
+    device_spec: Optional[Union[str, int]] = None,
+) -> Tuple[CTLSTM, Dict, Dict, torch.device, str]:
     """
     Load a trained CTLSTM model from checkpoint with its configurations.
     
@@ -94,7 +124,7 @@ def load_model(model_dir: str, checkpoint_name: str) -> Tuple[CTLSTM, Dict, Dict
     with open(model_config_path, "r") as f:
         model_config = json.load(f)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = resolve_device(device_spec)
     model = CTLSTM(
         input_size=model_config["input_size"],
         hidden_size=model_config["hidden_size"],
@@ -646,7 +676,8 @@ def main():
     denorm_method = config.get("denormalization_method", "target_scaler")
     file_format = config.get("window_file_format", "csv")
 
-    model, _, model_config, device, checkpoint_path = load_model(model_root, checkpoint_name)
+    device_cfg = combined_config.get("device", "auto")
+    model, _, model_config, device, checkpoint_path = load_model(model_root, checkpoint_name, device_cfg)
     seed = args.seed if args.seed is not None else combined_config.get("seed", 42)
 
     data_loader, loaders = build_data_loader(combined_config, seed, args.watersheds, args.scenarios)
