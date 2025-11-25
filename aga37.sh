@@ -65,6 +65,9 @@
 # python train.py --config 'config.yaml' --experiment streamflow_exp5 --seed 42 &
 # python train.py --config 'config.yaml' --experiment streamflow_exp6 --seed 42 &
 # python train_hmtl_uncertainty.py --experiment streamflow_hmtl_uncertainty --seed 42 &
+python train.py --config 'config.yaml' --experiment streamflow_BlueEarth_hist_scaled_exp1 --seed 42 &
+python train.py --config 'config.yaml' --experiment streamflow_LeSueur_hist_scaled_exp1 --seed 42 &
+python train.py --config 'config.yaml' --experiment streamflow_Watonwan_hist_scaled_exp1 --seed 42 &
 wait
 )
 

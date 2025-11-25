@@ -61,13 +61,46 @@
 
 
 # {
-# python inference.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset test &
-# python inference.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset val &
-# python inference.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset train &
+# # python inference.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset test &
+# # python inference.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset val &
+# # python inference.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset train &
+# }
+# {
+# python inference.py --model-dir experiments/streamflow_BlueEarth_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
+# python inference.py --model-dir experiments/streamflow_BlueEarth_hist_scaled_exp1 --model-trained best_model.pth --dataset val &
+# python inference.py --model-dir experiments/streamflow_BlueEarth_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+# wait
+# }
+# {
+# python analysis.py --model-dir experiments/streamflow_BlueEarth_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
+# python analysis.py --model-dir experiments/streamflow_BlueEarth_hist_scaled_exp1 --model-trained best_model.pth --dataset val & 
+# python analysis.py --model-dir experiments/streamflow_BlueEarth_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
 # wait
 # }
 
+{
+python inference.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
+python inference.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset val &
+python inference.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+wait
+}
+{
+python analysis.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
+python analysis.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset val & 
+python analysis.py --model-dir experiments/streamflow_LeSueur_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+wait
+}
 
-python analysis.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset test &
-python analysis.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset val & 
-python analysis.py --model-dir experiments/streamflow_exp1 --model-trained best_model.pth --dataset train &
+{
+python inference.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
+python inference.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset val &
+python inference.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+wait
+}
+{
+python analysis.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset test &
+python analysis.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset val & 
+python analysis.py --model-dir experiments/streamflow_Watonwan_hist_scaled_exp1 --model-trained best_model.pth --dataset train &
+wait
+}
+

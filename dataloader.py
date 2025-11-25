@@ -540,7 +540,8 @@ class FloodDroughtDataLoader:
                                 windowed_data: np.ndarray, 
                                 date_windows: List[pd.DatetimeIndex],
                                 columns: List[str],
-                                aggregation_method: str = 'mean') -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]:
+                                aggregation_method: str = 'mean',
+                                stride: Optional[int] = None) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]:
         """
         Reconstruct time series from windowed data using date information.
         
@@ -561,6 +562,10 @@ class FloodDroughtDataLoader:
             - 'median': Median of overlapping values
             - 'last': Use the last (most recent) prediction
             - 'first': Use the first prediction
+            - 'latest': Keep all timesteps from the first window, then only the
+                        last `stride` timesteps from subsequent windows (avoids overlap)
+        stride : Optional[int]
+            Stride used when creating the windows. Required for 'latest'.
         
         Returns:
         --------
@@ -569,9 +574,13 @@ class FloodDroughtDataLoader:
         if len(windowed_data) != len(date_windows):
             raise ValueError(f"Number of windows ({len(windowed_data)}) must match number of date windows ({len(date_windows)})")
         aggregation_method = aggregation_method.lower()
-        supported_methods = {'mean', 'median', 'last', 'first'}
+        supported_methods = {'mean', 'median', 'last', 'first', 'latest'}
         if aggregation_method not in supported_methods:
             raise ValueError(f"Unknown aggregation method: {aggregation_method}")
+        if aggregation_method == 'latest' and stride is None:
+            stride = getattr(self, 'stride', None)
+        if aggregation_method == 'latest' and stride is None:
+            raise ValueError("stride must be provided when using aggregation_method='latest'")
         
         # Determine if this is many-to-many or many-to-one based on data shape
         if windowed_data.ndim == 3:
@@ -593,6 +602,40 @@ class FloodDroughtDataLoader:
         # Ensure windows are processed chronologically for deterministic reconstruction
         window_entries = list(zip(windowed_data, date_windows))
         window_entries.sort(key=lambda item: item[1][0] if len(item[1]) > 0 else pd.Timestamp.min)
+
+        # Fast path for "latest": prefer later windows but only keep last `stride` timesteps after the first
+        if aggregation_method == 'latest':
+            timeline_values = []
+            for window_idx, (data_window, date_window) in enumerate(window_entries):
+                if is_many_to_many:
+                    if window_idx == 0:
+                        start_idx = 0
+                    else:
+                        start_idx = max(len(date_window) - stride, 0)
+                    for idx in range(start_idx, len(date_window)):
+                        timeline_values.append((pd.Timestamp(date_window[idx]), np.array(data_window[idx], dtype=np.float64)))
+                else:
+                    # many-to-one: keep the target step
+                    target_timestamp = pd.Timestamp(date_window[-1])
+                    timeline_values.append((target_timestamp, np.array(data_window, dtype=np.float64)))
+
+            # Deduplicate by keeping the latest occurrence for each timestamp
+            timeline_dict: Dict[pd.Timestamp, np.ndarray] = {}
+            for ts, values in timeline_values:
+                timeline_dict[ts] = values  # later entries overwrite earlier ones
+
+            sorted_ts = sorted(timeline_dict.keys())
+            reconstructed_values = np.stack([timeline_dict[ts] for ts in sorted_ts], axis=0)
+            time_series_df = pd.DataFrame(reconstructed_values, index=pd.DatetimeIndex(sorted_ts), columns=columns)
+            counts_df = pd.DataFrame(
+                np.ones_like(reconstructed_values),
+                index=pd.DatetimeIndex(sorted_ts),
+                columns=[f'{col}_count' for col in columns]
+            )
+
+            print("Reconstruction complete (latest/non-overlapping).")
+            print(f"  - Total timestamps: {len(time_series_df)}")
+            return time_series_df, counts_df
 
         # Collect all unique timestamps and create mapping
         all_timestamps = set()

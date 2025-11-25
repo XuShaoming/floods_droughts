@@ -210,7 +210,7 @@ def run_inference(model_dir: str,
     if dataset_names is None:
         dataset_names = ['train', 'val', 'test']
     if not reconstruction_methods:
-        reconstruction_methods = ['average', 'latest']
+        reconstruction_methods = ['latest', 'average']
     
     inference_results = {}
     
@@ -349,13 +349,13 @@ def reconstruct_time_series_from_windows(
     print(f"Total date windows: {len(date_windows)}")
 
     if not reconstruction_methods:
-        reconstruction_methods = ['average']
+        reconstruction_methods = ['latest']
 
     alias_map = {
         'average': ('average', 'mean'),
         'mean': ('average', 'mean'),
-        'latest': ('latest', 'last'),
-        'last': ('latest', 'last'),
+        'latest': ('latest', 'latest'),
+        'last': ('last', 'last'),
         'first': ('first', 'first'),
         'median': ('median', 'median'),
     }
@@ -373,10 +373,18 @@ def reconstruct_time_series_from_windows(
 
         print(f"  - Applying '{label}' reconstruction (aggregation='{aggregation}')")
         pred_ts, pred_counts = data_loader.reconstruct_time_series(
-            predictions, date_windows, target_names, aggregation_method=aggregation
+            predictions,
+            date_windows,
+            target_names,
+            aggregation_method=aggregation,
+            stride=config.get('stride'),
         )
         target_ts, target_counts = data_loader.reconstruct_time_series(
-            targets, date_windows, target_names, aggregation_method=aggregation
+            targets,
+            date_windows,
+            target_names,
+            aggregation_method=aggregation,
+            stride=config.get('stride'),
         )
 
         reconstruction_results[label] = {
