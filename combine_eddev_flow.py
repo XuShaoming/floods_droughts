@@ -31,9 +31,11 @@ def parse_arguments():
                         help='Climate scenario. For flow: hist_scaled, RCP4.5, RCP8.5. For EDDEV: Historical, RCP4.5, RCP8.5')
     parser.add_argument('--output_dir', type=str, default='data_processed',
                         help='Directory to save combined data (default: processed)')
+    parser.add_argument('--resolution', type=str, choices=['hourly', 'daily'], default='hourly',
+                        help='Resolution of the flow data to combine (default: hourly)')
     return parser.parse_args()
 
-def find_matching_files(basin, scenario, processed_dir):
+def find_matching_files(basin, scenario, processed_dir, resolution='hourly'):
     """
     Find matching flow and EDDEV files for the specified basin and scenario.
     
@@ -81,7 +83,10 @@ def find_matching_files(basin, scenario, processed_dir):
     eddev_scenario = scenario_map.get(scenario, scenario)
     
     # Find flow data file
-    flow_file_pattern = str(processed_dir / basin / f"{basin}_{scenario}_flow.csv")
+    if resolution == 'daily':
+        flow_file_pattern = str(processed_dir / basin / f"{basin}_{scenario}_flow.csv")
+    else:  # hourly
+        flow_file_pattern = str(processed_dir / basin / f"{basin}_{scenario}_flow_hourly.csv")
     flow_files = glob.glob(flow_file_pattern)
     
     # Find EDDEV data file
@@ -197,13 +202,17 @@ if __name__ == "__main__":
     
     try:
         # Find matching files
-        flow_file, eddev_file = find_matching_files(args.basin, args.scenario, processed_dir)
+        flow_file, eddev_file = find_matching_files(args.basin, args.scenario, processed_dir, resolution=args.resolution)
         
         # Combine data
         combined_df = combine_data(flow_file, eddev_file)
         
+        if args.resolution == 'daily':
+            res_tag = ''
+        else:
+            res_tag = '_hourly'
         # Create output filename
-        output_file = processed_dir / f"{args.basin}_{args.scenario}_combined.csv"
+        output_file = processed_dir / f"{args.basin}_{args.scenario}_combined{res_tag}.csv"
         
         # Save combined data
         print(f"Saving combined data to {output_file}")

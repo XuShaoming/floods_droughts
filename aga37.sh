@@ -59,17 +59,17 @@
 # python train_hmtl_cmb.py --config 'config.yaml' --experiment streamflow_hmtl_cmb --seed 42
 
 
-(
-# python train.py --config 'config.yaml' --experiment streamflow_exp3 --seed 42 &
-# python train.py --config 'config.yaml' --experiment streamflow_exp4 --seed 42 &
-# python train.py --config 'config.yaml' --experiment streamflow_exp5 --seed 42 &
-# python train.py --config 'config.yaml' --experiment streamflow_exp6 --seed 42 &
-# python train_hmtl_uncertainty.py --experiment streamflow_hmtl_uncertainty --seed 42 &
-python train.py --config 'config.yaml' --experiment streamflow_BlueEarth_hist_scaled_exp1 --seed 42 &
-python train.py --config 'config.yaml' --experiment streamflow_LeSueur_hist_scaled_exp1 --seed 42 &
-python train.py --config 'config.yaml' --experiment streamflow_Watonwan_hist_scaled_exp1 --seed 42 &
-wait
-)
+# (
+# # python train.py --config 'config.yaml' --experiment streamflow_exp3 --seed 42 &
+# # python train.py --config 'config.yaml' --experiment streamflow_exp4 --seed 42 &
+# # python train.py --config 'config.yaml' --experiment streamflow_exp5 --seed 42 &
+# # python train.py --config 'config.yaml' --experiment streamflow_exp6 --seed 42 &
+# # python train_hmtl_uncertainty.py --experiment streamflow_hmtl_uncertainty --seed 42 &
+# python train.py --config 'config.yaml' --experiment streamflow_BlueEarth_hist_scaled_exp1 --seed 42 &
+# python train.py --config 'config.yaml' --experiment streamflow_LeSueur_hist_scaled_exp1 --seed 42 &
+# python train.py --config 'config.yaml' --experiment streamflow_Watonwan_hist_scaled_exp1 --seed 42 &
+# wait
+# )
 
 (
 # python inference.py --model-dir experiments/streamflow_exp3 --model-trained final_model.pth --dataset train --analysis &
@@ -138,3 +138,24 @@ wait
 
 wait
 )
+
+# python process_flow_data.py
+# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "hist_scaled" --resolution "daily"
+
+
+# {
+# python train_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_state_hourly --seed 42 &
+# wait
+# }
+
+{
+python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_state_hourly_inference &
+python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_state_hourly_inference_val &
+python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_state_hourly_inference_train &
+wait
+}
+
+{
+python analysis_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_state_hourly_analysis --split test val train &
+wait
+}

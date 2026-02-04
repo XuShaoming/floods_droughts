@@ -1,0 +1,16 @@
+Author:Anurag Mishra (anurag.mishra@geosyntec.com)
+
+This folder includes the model output by all the climate models and will be updated with new runs.
+
+The structure of the folder and files is as follows:
+1. WatershedName_outlet_scenario_Flow.csv - This is the csv file on hourly flow at the outlet of the watershed for a specific scenario (hist_scaled, RCP4.5, or RCP8.5)
+2. WatershedName_outlet_scenario_DailyOutputs.csv - This is the csv file of multiple model metrics at the watershed scale. The definitions are listed below. 
+PET - Weighted Potential Evapotranspiration in inches
+ET - Weighted actual Evapotranspiration in inches
+SUPY - Weighted moisture supply (Rain + Snow Melt) in inches
+SNOW - Weighted snow depth in feet. 
+TWS - Weighted total soil moisture in inches
+LZS - Weighted lower zone soil moisture in inches
+AGW - Weighted active groundwater storage in inches.
+
+3. WatershedName - These folders have observed and simulated flow (hist_scaled scenario) corresponding to the USGS gage. In some watersheds, the outlet does not match with the USGS gage, and therefore, I created a separate folder for additional comparison. The folder also includes RCP4.5 and RCP8.5 flows at the USGS gages.

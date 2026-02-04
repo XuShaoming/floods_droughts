@@ -104,13 +104,19 @@
 # wait
 # }
 
+# {
+# python train_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river --seed 42 &
+# wait
+# }
+
 {
-python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_val &
-python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_train &
+python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_inference &
+python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_inference_val &
+python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_inference_train &
 wait
 }
 
 {
-python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis --split test val train &
+python analysis_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_analysis --split test val train &
 wait
 }

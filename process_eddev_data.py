@@ -13,6 +13,7 @@ from datetime import datetime
 
 # File paths (same as original)
 base_dir = os.path.join("data","eddev1")
+shape_dir = os.path.join("data", "shapefiles")
 centroid_locations_csv = f"{base_dir}/Lat_Lon_Centroid_Locations.csv"
 meteo_list = ['T2', 'DEWPT', 'PRECIP', 'SWDNB', 'WSPD10', 'LH']
 output_dir = "data_processed"
@@ -51,7 +52,7 @@ def main():
     args = parse_arguments()
     basin = args.basin
     scenario = args.scenario
-    watersheds_shp = f"{base_dir}/{basin}_NewMetSeg.shp"
+    watersheds_shp = f"{shape_dir}/{basin}_NewMetSeg.shp"
 
     # Determine time range and output file (same as original)
     if args.all:

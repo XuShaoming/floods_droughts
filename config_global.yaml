@@ -8,8 +8,6 @@
 # hspf_CAT_attributes.csv are embedded and concatenated with dynamic meteorological
 # sequences during training.
 
-
-
 base_global_config: &BASE_GLOBAL_CONFIG
   # Data configuration
   data_dir: "data_processed"
