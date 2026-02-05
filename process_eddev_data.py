@@ -23,7 +23,10 @@ basin_names ={
     'WatonwanR_Watersheds': 'Watonwan',
     'LeSueurR_Watersheds': 'LeSueur',
     'KettleR_Watersheds': 'KettleRiverModels',
-    'BlueEarthR_Watersheds': 'BlueEarth'
+    'BlueEarthR_Watersheds': 'BlueEarth',
+    'LittleFork_Watersheds': 'LittleFork',
+    'SnakeSE_Watersheds': 'SnakeSE',
+    'Zumbro_Watersheds': 'Zumbro'
 }
 
 scenario_names = {
@@ -67,6 +70,9 @@ def main():
         output_file = f"{output_dir}/{basin_names[basin]}/{basin_names[basin]}_{scenario_names[scenario]}_eddev1_{date_range_str}.csv"
         print(f"Processing time range: {time_start} to {time_end}")
 
+    basin_output_dir = os.path.join(output_dir, basin_names[basin])
+    os.makedirs(basin_output_dir, exist_ok=True)
+
     try:
         # Load spatial data (same as original)
         print("Loading watershed shapefile...")
@@ -88,7 +94,7 @@ def main():
 
         # Find nearest grid points (same as original)
         print("Finding nearest grid points...")
-        nearest_grid_point_path = os.path.join(output_dir, basin_names[basin], f'nearest_grid_point_{basin_names[basin]}.npy')
+        nearest_grid_point_path = os.path.join(basin_output_dir, f'nearest_grid_point_{basin_names[basin]}.npy')
         if os.path.exists(nearest_grid_point_path):
             nearest_grid_point = np.load(nearest_grid_point_path)
             print(f"Loaded existing nearest grid points from file {nearest_grid_point_path}")

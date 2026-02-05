@@ -32,7 +32,7 @@ def parse_arguments():
     parser.add_argument('--output_dir', type=str, default='data_processed',
                         help='Directory to save combined data (default: processed)')
     parser.add_argument('--resolution', type=str, choices=['hourly', 'daily'], default='hourly',
-                        help='Resolution of the flow data to combine (default: hourly)')
+                        help='Resolution of the flow state data to combine (default: hourly)')
     return parser.parse_args()
 
 def find_matching_files(basin, scenario, processed_dir, resolution='hourly'):

@@ -7,7 +7,7 @@
 # python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "RCP4.5"
 # python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "RCP8.5"
 
-
+# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "hist_scaled"
 # python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "RCP4.5"
 # python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "RCP8.5"
 
@@ -109,14 +109,50 @@
 # wait
 # }
 
+# {
+# python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_inference &
+# python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_inference_val &
+# python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_inference_train &
+# wait
+# }
+
+# {
+# python analysis_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_analysis --split test val train &
+# wait
+# }
+
+# {
+# # python process_eddev_data.py --all --basin "LittleFork_Watersheds" --scenario "Historical" &
+# # python process_eddev_data.py --all --basin "SnakeSE_Watersheds" --scenario "Historical" & 
+# # python process_eddev_data.py --all --basin "Zumbro_Watersheds" --scenario "Historical" &
+# }
+
+
+# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "hist_scaled"
+# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "RCP4.5"
+# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "RCP8.5"
+
+# for basin in Watonwan LeSueur KettleRiverModels BlueEarth LittleFork Zumbro SnakeSE; do
+#     python combine_eddev_flow.py --basin $basin --scenario "hist_scaled" --resolution "daily" &
+#     python combine_eddev_flow.py --basin $basin --scenario "RCP4.5" --resolution "daily" &
+#     python combine_eddev_flow.py --basin $basin --scenario "RCP8.5" --resolution "daily" &
+#     wait
+# done
+
+
 {
-python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_inference &
-python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_inference_val &
-python inference_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_inference_train &
+# python train_hmtl_global.py --experiment streamflow_hmtl_global
+wait
+python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference &
+python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_val &
+python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_train &
+wait 
+python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis --target-group final
 wait
 }
 
-{
-python analysis_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_analysis --split test val train &
-wait
-}
+
+
+
+
+
