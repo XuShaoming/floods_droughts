@@ -90,8 +90,9 @@ if __name__ == "__main__":
     
     # Process data for each basin and scenario
     # basins = ['KettleRiverModels', 'BlueEarth', 'LeSueur', 'Watonwan']
-    basins = ['BlueEarth']
+    # basins = ['BlueEarth']
     # basins = ['BlueEarth', 'LeSueur', 'Watonwan', 'KettleRiverModels', 'LittleFork', 'Zumbro']
+    basins = ['LittleFork', 'Zumbro','SnakeSE']
     scenarios = ['hist_scaled', 'RCP4.5', 'RCP8.5']
     
     # Dictionary to store all processed data    

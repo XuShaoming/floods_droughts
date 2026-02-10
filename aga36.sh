@@ -140,8 +140,28 @@
 # done
 
 
+# python process_eddev_data.py --all --basin "SnakeSE_Watersheds" --scenario "RCP4.5" &
+# python process_eddev_data.py --all --basin "SnakeSE_Watersheds" --scenario "RCP8.5" & 
+# wait
+# python process_eddev_data.py --all --basin "LittleFork_Watersheds" --scenario "RCP4.5" & 
+# python process_eddev_data.py --all --basin "LittleFork_Watersheds" --scenario "RCP8.5" &
+# wait
+# python process_eddev_data.py --all --basin "Zumbro_Watersheds" --scenario "RCP4.5" & 
+# python process_eddev_data.py --all --basin "Zumbro_Watersheds" --scenario "RCP8.5" &
+# wait
+
+# python process_flow_data.py
+
+# for basin in LittleFork Zumbro SnakeSE; do
+#     python combine_eddev_flow.py --basin $basin --scenario "hist_scaled" --resolution "daily" &
+#     python combine_eddev_flow.py --basin $basin --scenario "RCP4.5" --resolution "daily" &
+#     python combine_eddev_flow.py --basin $basin --scenario "RCP8.5" --resolution "daily" &
+#     wait
+# done
+
+
 {
-# python train_hmtl_global.py --experiment streamflow_hmtl_global
+python train_hmtl_global.py --experiment streamflow_hmtl_global
 wait
 python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference &
 python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_val &
@@ -150,9 +170,4 @@ wait
 python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis --target-group final
 wait
 }
-
-
-
-
-
 

@@ -26,17 +26,17 @@ base_global_config: &BASE_GLOBAL_CONFIG
   scale_static_attributes: true
   dataset_splits:
     train:
-      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro"]
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro", "SnakeSE"]
         scenarios: ["hist_scaled"]
         start: "1980-01-01 00:00:00"
         end: "2000-12-31 23:00:00"
     val:
-      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro"]
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro", "SnakeSE"]
         scenarios: ["hist_scaled"]
         start: "1975-01-01 00:00:00"
         end: "1979-12-31 23:00:00"
     test:
-      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro"]
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro", "SnakeSE"]
         scenarios: ["hist_scaled"]
         start: "2001-01-01 00:00:00"
         end: "2005-12-31 23:00:00"
@@ -201,9 +201,9 @@ streamflow_hmtl_global_analysis:
     Analysis template for hierarchical global inference outputs.
   source_experiment: "streamflow_hmtl_global"
   metrics_output: "analysis_results"
-  train: ['KettleRiverModels', 'BlueEarth', 'Watonwan', 'LeSueur', 'LittleFork', 'Zumbro']
-  val: ['KettleRiverModels', 'BlueEarth', 'Watonwan', 'LeSueur', 'LittleFork', 'Zumbro']
-  test: ['KettleRiverModels', 'BlueEarth', 'Watonwan', 'LeSueur', 'LittleFork', 'Zumbro']
+  train: ['KettleRiverModels', 'BlueEarth', 'Watonwan', 'LeSueur', 'LittleFork', 'Zumbro', 'SnakeSE']
+  val: ['KettleRiverModels', 'BlueEarth', 'Watonwan', 'LeSueur', 'LittleFork', 'Zumbro', 'SnakeSE']
+  test: ['KettleRiverModels', 'BlueEarth', 'Watonwan', 'LeSueur', 'LittleFork', 'Zumbro', 'SnakeSE']
   method: "latest"
   window_plots:
     train: [0, 3, 5]
