@@ -160,14 +160,30 @@
 # done
 
 
-{
-python train_hmtl_global.py --experiment streamflow_hmtl_global
-wait
-python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference &
-python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_val &
-python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_train &
-wait 
-python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis --target-group final
-wait
-}
+# {
+# python train_hmtl_global.py --experiment streamflow_hmtl_global
+# wait
+# python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference &
+# python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_val &
+# python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_train &
+# wait 
+# python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis --target-group final
+# wait
+# }
+
+
+
+# python combined_eddev_flow_daily.py --basin KettleRiverModels --scenario hist_scaled
+
+
+# for basin in Watonwan LeSueur KettleRiverModels BlueEarth LittleFork Zumbro SnakeSE; do
+#     python combined_eddev_flow_daily.py --basin $basin --scenario hist_scaled &
+#     python combined_eddev_flow_daily.py --basin $basin --scenario RCP4.5 &
+#     python combined_eddev_flow_daily.py --basin $basin --scenario RCP8.5 &
+#     wait
+# done
+
+python train_global.py --config config_global.yaml --experiment daily_global_streamflow
+python inference_global.py --config config_global.yaml --experiment daily_global_streamflow_inference
+python analysis_global.py --config config_global.yaml --experiment daily_global_streamflow_analysis
 

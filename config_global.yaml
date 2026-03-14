@@ -209,3 +209,94 @@ streamflow_hmtl_global_analysis:
     train: [0, 3, 5]
     val: [0, 3, 5]
     test: [0, 3, 5]
+
+daily_global_PET:
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Daily model for intermediate variables using daily aggregated inputs.
+  csv_pattern: "{watershed}_{scenario}_combined_daily.csv"
+  window_size: 182
+  stride: 91
+  target_cols: ["PET"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+
+daily_global_ET:
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Daily model for intermediate variables using daily aggregated inputs.
+  csv_pattern: "{watershed}_{scenario}_combined_daily.csv"
+  window_size: 182
+  stride: 91
+  target_cols: ["ET"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+
+daily_global_SUPY:
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Daily model for intermediate variables using daily aggregated inputs.
+  csv_pattern: "{watershed}_{scenario}_combined_daily.csv"
+  window_size: 182
+  stride: 91
+  target_cols: ["SUPY"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+
+daily_global_WYIE:
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Daily model for intermediate variables using daily aggregated inputs.
+  csv_pattern: "{watershed}_{scenario}_combined_daily.csv"
+  window_size: 182
+  stride: 91
+  target_cols: ["WYIE"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+
+daily_global_SNOW:
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Daily model for intermediate variables using daily aggregated inputs.
+  csv_pattern: "{watershed}_{scenario}_combined_daily.csv"
+  window_size: 182
+  stride: 91
+  target_cols: ["SNOW"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+
+daily_global_TWS:
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Daily model for intermediate variables using daily aggregated inputs.
+  csv_pattern: "{watershed}_{scenario}_combined_daily.csv"
+  window_size: 182
+  stride: 91
+  target_cols: ["TWS"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+
+daily_global_LZS:
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Daily model for intermediate variables using daily aggregated inputs.
+  csv_pattern: "{watershed}_{scenario}_combined_daily.csv"
+  window_size: 182
+  stride: 91
+  target_cols: ["LZS"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+
+daily_global_AGW:
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Daily model for intermediate variables using daily aggregated inputs.
+  csv_pattern: "{watershed}_{scenario}_combined_daily.csv"
+  window_size: 182
+  stride: 91
+  target_cols: ["AGW"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+
+daily_global_streamflow:
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Daily model for intermediate variables using daily aggregated inputs.
+  csv_pattern: "{watershed}_{scenario}_combined_daily.csv"
+  window_size: 182
+  stride: 91
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+
