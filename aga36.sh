@@ -296,14 +296,33 @@
 # wait
 
 
-python analysis_global.py --config config_global.yaml --experiment daily_global_streamflow_analysis &
-python analysis_global.py --config config_global.yaml --experiment daily_global_PET_analysis  &
-python analysis_global.py --config config_global.yaml --experiment daily_global_ET_analysis &
-python analysis_global.py --config config_global.yaml --experiment daily_global_SUPY_analysis &
-python analysis_global.py --config config_global.yaml --experiment daily_global_WYIE_analysis &
-wait
-python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis &
-python analysis_global.py --config config_global.yaml --experiment daily_global_SNOW_analysis &
-python analysis_global.py --config config_global.yaml --experiment daily_global_TWS_analysis &
-python analysis_global.py --config config_global.yaml --experiment daily_global_LZS_analysis &
-python analysis_global.py --config config_global.yaml --experiment daily_global_AGW_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_streamflow_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_PET_analysis  &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_ET_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_SUPY_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_WYIE_analysis &
+# wait
+# python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_SNOW_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_TWS_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_LZS_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_AGW_analysis &
+
+
+# Hourly global streamflow with daily IMV inputs
+# python combine_imv_outputs.py
+# python combine_daily_imv_outputs_hourly_streamflow_hourly_eddy.py
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_inference
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_analysis
+
+
+
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_no_IMVs &
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs &
+# wait
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_no_IMVs_inference &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_inference &
+
+python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_no_IMVs_analysis &
+python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_analysis &
