@@ -225,6 +225,10 @@ class GlobalHierarchicalDataLoader:
     def _load_dynamic_datasets(self) -> Dict[Tuple[str, str], pd.DataFrame]:
         datasets: Dict[Tuple[str, str], pd.DataFrame] = {}
 
+        print(
+            f"Loading dynamic datasets for {len(self.required_combinations)} watershed/scenario combinations..."
+        )
+
         for watershed, scenario in self.required_combinations:
             relative_path = self.csv_pattern.format(watershed=watershed, scenario=scenario)
             csv_path = os.path.join(self.data_dir, relative_path)
@@ -252,9 +256,12 @@ class GlobalHierarchicalDataLoader:
 
             datasets[(watershed, scenario)] = df
 
+        print(f"Loaded {len(datasets)} dynamic datasets.")
+
         return datasets
 
     def _prepare_static_attributes(self):
+        print("Loading static attributes...")
         df = pd.read_csv(self.static_attributes_file)
 
         available_static_names = set(df[self.static_attribute_model_col].unique())
@@ -302,6 +309,7 @@ class GlobalHierarchicalDataLoader:
         for watershed in pivot.index:
             values = pivot.loc[watershed].values.astype(np.float32)
             self.static_attribute_lookup[watershed] = values
+        print(f"Prepared static attributes for {len(self.static_attribute_lookup)} watersheds.")
 
     # ------------------------------------------------------------------
     # Windowing and split preparation
@@ -553,6 +561,8 @@ class GlobalHierarchicalDataLoader:
         if not self.dataset_splits:
             return self._build_prepared_from_cache(split_cache)
 
+        print("Preparing data splits...")
+
         for split_name, selections in self.dataset_splits.items():
             if split_name not in split_cache:
                 warnings.warn(f"Unsupported split '{split_name}'. Only train/val/test are used.")
@@ -598,7 +608,7 @@ class GlobalHierarchicalDataLoader:
     def _prepare_data(self):
         if self.prepared_data is not None:
             return self.prepared_data
-
+        print("Building windowed datasets...")
         self.prepared_data = self._prepare_data_from_splits()
         self.metadata = {
             split: {

@@ -31,8 +31,8 @@ def parse_arguments():
                         help='Climate scenario. For flow: hist_scaled, RCP4.5, RCP8.5. For EDDEV: Historical, RCP4.5, RCP8.5')
     parser.add_argument('--output_dir', type=str, default='data_processed',
                         help='Directory to save combined data (default: processed)')
-    parser.add_argument('--resolution', type=str, choices=['hourly', 'daily'], default='hourly',
-                        help='Resolution of the flow state data to combine (default: hourly)')
+    parser.add_argument('--resolution', type=str, choices=['hourly', 'daily'], default='daily',
+                        help='Resolution of the flow state data to combine (default: daily)')
     return parser.parse_args()
 
 def find_matching_files(basin, scenario, processed_dir, resolution='hourly'):

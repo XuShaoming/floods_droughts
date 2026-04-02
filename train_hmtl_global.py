@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import pickle
+import time
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -23,7 +24,7 @@ import yaml
 
 from dataloader_hmtl_global import GlobalHierarchicalDataLoader
 from models.CTLSTM_Global import CTLSTMGlobal
-from train import (
+from utils import (
     EarlyStopping,
     calculate_metrics,
     get_scheduler,
@@ -391,6 +392,8 @@ def main():
     if not dataset_splits:
         raise ValueError("dataset_splits must be defined in the experiment config.")
 
+    print("Initializing hierarchical data loader...")
+    loader_start = time.time()
     data_loader = GlobalHierarchicalDataLoader(
         data_dir=config["data_dir"],
         watersheds=config.get("watersheds"),
@@ -417,7 +420,12 @@ def main():
         scenario_date_ranges=config.get("scenario_date_ranges"),
     )
 
+    print(f"Data loader initialized in {time.time() - loader_start:.2f}s")
+
+    print("Creating train/val/test DataLoaders...")
+    loader_build_start = time.time()
     loaders = data_loader.create_data_loaders(shuffle_train=True)
+    print(f"DataLoaders created in {time.time() - loader_build_start:.2f}s")
     train_loader = loaders["train_loader"]
     val_loader = loaders["val_loader"]
     test_loader = loaders["test_loader"]

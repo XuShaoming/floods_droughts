@@ -16,8 +16,8 @@ base_global_config: &BASE_GLOBAL_CONFIG
   static_attribute_id_col: "characteristic_id"
   static_attribute_value_col: "value"
   static_attribute_model_col: "model"
-  window_size: 360          # 15 days of hourly data
-  stride: 24                # 1-day step between windows
+  window_size: 384          # 15 days of hourly data
+  stride: 192 #24                # 1-day step between windows
   target_cols: ["streamflow"]
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
   use_static_attributes: true
@@ -63,11 +63,42 @@ base_global_config: &BASE_GLOBAL_CONFIG
   early_stopping_min_delta: 1.0e-6
 
   # Experiment management
-  save_dir: "experiments/global_models"
+  save_dir: "experiments/"
   save_every_n_epochs: 25
   tensorboard_log: true
   seed: 42
   device: "auto"           # Set to "cuda:0", "cuda:1", etc. to pin a specific GPU
+
+default_window_plots: &DEFAULT_WINDOW_PLOTS
+  BlueEarth: [0, 1, 2, 3]
+  LeSueur: [0, 1, 2, 3]
+  Watonwan: [0, 1, 2, 3]
+  KettleRiverModels: [0, 1, 2, 3]
+  LittleFork: [0, 1, 2, 3]
+  Zumbro: [0, 1, 2, 3]
+  SnakeSE: [0, 1, 2, 3]
+
+default_timeseries_test_range: &DEFAULT_TIMESERIES_TEST_RANGE
+  method: ["latest"]
+  start: "2001-01-01 00:00:00"
+  end: "2005-12-31 23:00:00"
+
+default_timeseries_train_range: &DEFAULT_TIMESERIES_TRAIN_RANGE
+  method: ["latest"]
+  start: "1980-01-01 00:00:00"
+  end: "2000-12-31 23:00:00"
+
+default_timeseries_valid_range: &DEFAULT_TIMESERIES_VALID_RANGE
+  method: ["latest"]
+  start: "1975-01-01 00:00:00"
+  end: "1979-12-31 23:00:00"
+
+# Flip this alias between *DEFAULT_TIMESERIES_TEST_RANGE, *DEFAULT_TIMESERIES_TRAIN_RANGE,
+# and *DEFAULT_TIMESERIES_VALID_RANGE as needed.
+default_timeseries_range: &DEFAULT_TIMESERIES_RANGE
+  # <<: *DEFAULT_TIMESERIES_TEST_RANGE
+  # <<: *DEFAULT_TIMESERIES_TRAIN_RANGE
+  <<: *DEFAULT_TIMESERIES_VALID_RANGE
 
 default_experiment: streamflow_global_exp1
 
@@ -210,7 +241,7 @@ streamflow_hmtl_global_analysis:
     val: [0, 3, 5]
     test: [0, 3, 5]
 
-daily_global_PET:
+daily_global_PET: &daily_global_PET
   <<: *BASE_GLOBAL_CONFIG
   description: >
     Daily model for intermediate variables using daily aggregated inputs.
@@ -220,7 +251,40 @@ daily_global_PET:
   target_cols: ["PET"]
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
 
-daily_global_ET:
+daily_global_PET_inference: &daily_global_PET_inference
+  <<: *daily_global_PET
+  description: >
+    Inference configuration for daily_global_PET.
+  source_experiment: "daily_global_PET"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+daily_global_PET_analysis:
+  <<: *daily_global_PET_inference
+  description: >
+    Analysis configuration for daily_global_PET inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+daily_global_ET: &daily_global_ET
   <<: *BASE_GLOBAL_CONFIG
   description: >
     Daily model for intermediate variables using daily aggregated inputs.
@@ -230,7 +294,41 @@ daily_global_ET:
   target_cols: ["ET"]
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
 
-daily_global_SUPY:
+daily_global_ET_inference: &daily_global_ET_inference
+  <<: *daily_global_ET
+  description: >
+    Inference configuration for daily_global_ET.
+  source_experiment: "daily_global_ET"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+daily_global_ET_analysis:
+  <<: *daily_global_ET_inference
+  description: >
+    Analysis configuration for daily_global_ET inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+daily_global_SUPY: &daily_global_SUPY
   <<: *BASE_GLOBAL_CONFIG
   description: >
     Daily model for intermediate variables using daily aggregated inputs.
@@ -240,7 +338,41 @@ daily_global_SUPY:
   target_cols: ["SUPY"]
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
 
-daily_global_WYIE:
+daily_global_SUPY_inference: &daily_global_SUPY_inference
+  <<: *daily_global_SUPY
+  description: >
+    Inference configuration for daily_global_SUPY.
+  source_experiment: "daily_global_SUPY"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+daily_global_SUPY_analysis:
+  <<: *daily_global_SUPY_inference
+  description: >
+    Analysis configuration for daily_global_SUPY inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+daily_global_WYIE: &daily_global_WYIE
   <<: *BASE_GLOBAL_CONFIG
   description: >
     Daily model for intermediate variables using daily aggregated inputs.
@@ -250,7 +382,40 @@ daily_global_WYIE:
   target_cols: ["WYIE"]
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
 
-daily_global_SNOW:
+daily_global_WYIE_inference: &daily_global_WYIE_inference
+  <<: *daily_global_WYIE
+  description: >
+    Inference configuration for daily_global_WYIE.
+  source_experiment: "daily_global_WYIE"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+daily_global_WYIE_analysis:
+  <<: *daily_global_WYIE_inference
+  description: >
+    Analysis configuration for daily_global_WYIE inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+daily_global_SNOW: &daily_global_SNOW
   <<: *BASE_GLOBAL_CONFIG
   description: >
     Daily model for intermediate variables using daily aggregated inputs.
@@ -260,7 +425,40 @@ daily_global_SNOW:
   target_cols: ["SNOW"]
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
 
-daily_global_TWS:
+daily_global_SNOW_inference: &daily_global_SNOW_inference
+  <<: *daily_global_SNOW
+  description: >
+    Inference configuration for daily_global_SNOW.
+  source_experiment: "daily_global_SNOW"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+daily_global_SNOW_analysis:
+  <<: *daily_global_SNOW_inference
+  description: >
+    Analysis configuration for daily_global_SNOW inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+daily_global_TWS: &daily_global_TWS
   <<: *BASE_GLOBAL_CONFIG
   description: >
     Daily model for intermediate variables using daily aggregated inputs.
@@ -270,7 +468,42 @@ daily_global_TWS:
   target_cols: ["TWS"]
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
 
-daily_global_LZS:
+
+daily_global_TWS_inference: &daily_global_TWS_inference
+  <<: *daily_global_TWS
+  description: >
+    Inference configuration for daily_global_TWS.
+  source_experiment: "daily_global_TWS"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+daily_global_TWS_analysis:
+  <<: *daily_global_TWS_inference
+  description: >
+    Analysis configuration for daily_global_TWS inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+daily_global_LZS: &daily_global_LZS
   <<: *BASE_GLOBAL_CONFIG
   description: >
     Daily model for intermediate variables using daily aggregated inputs.
@@ -280,7 +513,40 @@ daily_global_LZS:
   target_cols: ["LZS"]
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
 
-daily_global_AGW:
+daily_global_LZS_inference: &daily_global_LZS_inference
+  <<: *daily_global_LZS
+  description: >
+    Inference configuration for daily_global_LZS.
+  source_experiment: "daily_global_LZS"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+daily_global_LZS_analysis:
+  <<: *daily_global_LZS_inference
+  description: >
+    Analysis configuration for daily_global_LZS inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+daily_global_AGW: &daily_global_AGW
   <<: *BASE_GLOBAL_CONFIG
   description: >
     Daily model for intermediate variables using daily aggregated inputs.
@@ -290,7 +556,41 @@ daily_global_AGW:
   target_cols: ["AGW"]
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
 
-daily_global_streamflow:
+
+daily_global_AGW_inference: &daily_global_AGW_inference
+  <<: *daily_global_AGW
+  description: >
+    Inference configuration for daily_global_AGW.
+  source_experiment: "daily_global_AGW"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+daily_global_AGW_analysis:
+  <<: *daily_global_AGW_inference
+  description: >
+    Analysis configuration for daily_global_AGW inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+daily_global_streamflow: &daily_global_streamflow
   <<: *BASE_GLOBAL_CONFIG
   description: >
     Daily model for intermediate variables using daily aggregated inputs.
@@ -299,4 +599,38 @@ daily_global_streamflow:
   stride: 91
   target_cols: ["streamflow"]
   feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH"]
+
+daily_global_streamflow_inference: &daily_global_streamflow_inference
+  <<: *daily_global_streamflow
+  description: >
+    Inference configuration for daily_global_streamflow.
+  source_experiment: "daily_global_streamflow"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+daily_global_streamflow_analysis:
+  <<: *daily_global_streamflow_inference
+  description: >
+    Analysis configuration for daily_global_streamflow inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+    
 

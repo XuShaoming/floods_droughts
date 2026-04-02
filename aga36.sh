@@ -161,13 +161,13 @@
 
 
 # {
-# python train_hmtl_global.py --experiment streamflow_hmtl_global
-# wait
-# python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference &
+# # python train_hmtl_global.py --experiment streamflow_hmtl_global
+# # wait
+# # python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference &
 # python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_val &
 # python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_train &
 # wait 
-# python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis --target-group final
+# python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis
 # wait
 # }
 
@@ -183,7 +183,127 @@
 #     wait
 # done
 
-python train_global.py --config config_global.yaml --experiment daily_global_streamflow
-python inference_global.py --config config_global.yaml --experiment daily_global_streamflow_inference
-python analysis_global.py --config config_global.yaml --experiment daily_global_streamflow_analysis
+# python train_global.py --config config_global.yaml --experiment daily_global_streamflow
+# python inference_global.py --config config_global.yaml --experiment daily_global_streamflow_inference
+# python analysis_global.py --config config_global.yaml --experiment daily_global_streamflow_analysis
 
+# python combined_eddev_flow_daily.py --basin BlueEarth --scenario hist_scaled &
+# python combined_eddev_flow_daily.py --basin KettleRiverModels --scenario hist_scaled &
+
+
+
+# for exp in daily_global_PET daily_global_ET daily_global_SUPY daily_global_WYIE daily_global_SNOW daily_global_TWS daily_global_LZS daily_global_AGW daily_global_streamflow; do
+#     python train_global.py --config config_global.yaml --experiment $exp
+#     python inference_global.py --config config_global.yaml --experiment ${exp}_inference
+#     python analysis_global.py --config config_global.yaml --experiment ${exp}_analysis
+# done
+
+# python train_global.py --config config_global.yaml --experiment daily_global_PET &
+# python train_global.py --config config_global.yaml --experiment daily_global_ET &
+# python train_global.py --config config_global.yaml --experiment daily_global_SUPY &
+# python train_global.py --config config_global.yaml --experiment daily_global_WYIE &
+# wait
+# python train_global.py --config config_global.yaml --experiment daily_global_SNOW &
+# python train_global.py --config config_global.yaml --experiment daily_global_TWS &
+# python train_global.py --config config_global.yaml --experiment daily_global_LZS &
+# python train_global.py --config config_global.yaml --experiment daily_global_AGW &
+# wait
+# python inference_global.py --config config_global.yaml --experiment daily_global_PET_inference & 
+# python inference_global.py --config config_global.yaml --experiment daily_global_ET_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_SUPY_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_WYIE_inference &
+# wait
+# python inference_global.py --config config_global.yaml --experiment daily_global_SNOW_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_TWS_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_LZS_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_AGW_inference &
+# wait
+# python analysis_global.py --config config_global.yaml --experiment daily_global_PET_analysis  &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_ET_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_SUPY_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_WYIE_analysis &
+# wait
+# python analysis_global.py --config config_global.yaml --experiment daily_global_SNOW_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_TWS_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_LZS_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_AGW_analysis &
+# wait
+
+# python -m pdb combined_eddev_flow_daily.py --basin KettleRiverModels --scenario hist_scaled
+
+
+
+## Mar 17, 14:06, 2025
+# python process_flow_data.py
+# combine_eddev_flow.py for KettleRiverModels
+# python combined_eddev_flow_daily.py --basin $basin --scenario hist_scaled & for KettleRiverModels
+# All daily_global_* experiments, and streamflow_hmtl_global experiment.
+
+
+
+
+# python process_flow_data.py
+# wait
+# python combine_eddev_flow.py --basin KettleRiverModels --scenario "hist_scaled" --resolution "daily" &
+# python combine_eddev_flow.py --basin KettleRiverModels --scenario "RCP4.5" --resolution "daily" &
+# python combine_eddev_flow.py --basin KettleRiverModels --scenario "RCP8.5" --resolution "daily" &
+# wait
+# python combined_eddev_flow_daily.py --basin KettleRiverModels --scenario hist_scaled &
+# python combined_eddev_flow_daily.py --basin KettleRiverModels --scenario RCP4.5 &
+# python combined_eddev_flow_daily.py --basin KettleRiverModels --scenario RCP8.5 &
+# wait
+
+# python train_global.py --config config_global.yaml --experiment daily_global_streamflow &    
+# python train_global.py --config config_global.yaml --experiment daily_global_PET &
+# python train_global.py --config config_global.yaml --experiment daily_global_ET &
+# python train_global.py --config config_global.yaml --experiment daily_global_SUPY &
+# python train_global.py --config config_global.yaml --experiment daily_global_WYIE &
+# wait
+# python train_global.py --config config_global.yaml --experiment daily_global_SNOW &
+# python train_global.py --config config_global.yaml --experiment daily_global_TWS &
+# python train_global.py --config config_global.yaml --experiment daily_global_LZS &
+# python train_global.py --config config_global.yaml --experiment daily_global_AGW &
+# wait
+# python inference_global.py --config config_global.yaml --experiment daily_global_streamflow_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_PET_inference & 
+# python inference_global.py --config config_global.yaml --experiment daily_global_ET_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_SUPY_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_WYIE_inference &
+# wait
+# python inference_global.py --config config_global.yaml --experiment daily_global_SNOW_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_TWS_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_LZS_inference &
+# python inference_global.py --config config_global.yaml --experiment daily_global_AGW_inference &
+# wait
+# python analysis_global.py --config config_global.yaml --experiment daily_global_streamflow_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_PET_analysis  &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_ET_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_SUPY_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_WYIE_analysis &
+# wait
+# python analysis_global.py --config config_global.yaml --experiment daily_global_SNOW_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_TWS_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_LZS_analysis &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_AGW_analysis &
+# wait
+# python train_hmtl_global.py --experiment streamflow_hmtl_global
+# wait
+# python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference &
+# python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_val &
+# python inference_hmtl_global.py --experiment streamflow_hmtl_global_inference_train &
+# wait 
+# python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis
+# wait
+
+
+python analysis_global.py --config config_global.yaml --experiment daily_global_streamflow_analysis &
+python analysis_global.py --config config_global.yaml --experiment daily_global_PET_analysis  &
+python analysis_global.py --config config_global.yaml --experiment daily_global_ET_analysis &
+python analysis_global.py --config config_global.yaml --experiment daily_global_SUPY_analysis &
+python analysis_global.py --config config_global.yaml --experiment daily_global_WYIE_analysis &
+wait
+python analysis_hmtl_global.py --experiment streamflow_hmtl_global_analysis &
+python analysis_global.py --config config_global.yaml --experiment daily_global_SNOW_analysis &
+python analysis_global.py --config config_global.yaml --experiment daily_global_TWS_analysis &
+python analysis_global.py --config config_global.yaml --experiment daily_global_LZS_analysis &
+python analysis_global.py --config config_global.yaml --experiment daily_global_AGW_analysis &

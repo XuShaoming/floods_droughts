@@ -231,6 +231,21 @@ class GlobalFloodDroughtDataLoader:
             df["watershed"] = watershed
             df["scenario"] = scenario
 
+            numeric_cols = df.select_dtypes(include="number").columns.tolist()
+            if numeric_cols:
+                numeric_values = df[numeric_cols].to_numpy()
+                finite_mask = np.isfinite(numeric_values)
+                if not finite_mask.all():
+                    bad_counts = (~finite_mask).sum(axis=0)
+                    bad_cols = {
+                        col: int(count)
+                        for col, count in zip(numeric_cols, bad_counts)
+                        if count > 0
+                    }
+                    raise ValueError(
+                        f"Non-finite values found in {csv_path}: {bad_cols}"
+                    )
+
             missing_targets = [col for col in self.target_cols if col not in df.columns]
             if missing_targets:
                 raise ValueError(f"Missing target columns {missing_targets} in {csv_path}")

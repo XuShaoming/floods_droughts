@@ -92,8 +92,10 @@ if __name__ == "__main__":
     # basins = ['KettleRiverModels', 'BlueEarth', 'LeSueur', 'Watonwan']
     # basins = ['BlueEarth']
     # basins = ['BlueEarth', 'LeSueur', 'Watonwan', 'KettleRiverModels', 'LittleFork', 'Zumbro']
-    basins = ['LittleFork', 'Zumbro','SnakeSE']
-    scenarios = ['hist_scaled', 'RCP4.5', 'RCP8.5']
+    # basins = ['LittleFork', 'Zumbro','SnakeSE']
+    # scenarios = ['hist_scaled', 'RCP4.5', 'RCP8.5']
+    basins = ['KettleRiverModels']
+    scenarios = ['hist_scaled']
     
     # Dictionary to store all processed data    
     for basin in basins:

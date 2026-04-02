@@ -12,6 +12,7 @@ Usage:
 import argparse
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -48,10 +49,21 @@ def parse_arguments():
 			"(default: hourly)"
 		),
 	)
+	parser.add_argument(
+		"--non_finite_strategy",
+		type=str,
+		choices=["drop", "ffill"],
+		default="drop",
+		help=(
+			"How to handle non-finite daily values: "
+			"'drop' removes those dates; 'ffill' copies the previous day's values. "
+			"(default: drop)"
+		),
+	)
 	return parser.parse_args()
 
 
-def convert_to_daily(input_file: Path) -> pd.DataFrame:
+def convert_to_daily(input_file: Path, non_finite_strategy: str) -> pd.DataFrame:
 	"""
 	Load combined data from a CSV file and aggregate it to daily means.
 
@@ -93,6 +105,38 @@ def convert_to_daily(input_file: Path) -> pd.DataFrame:
 		# If no non-numeric columns, use only numeric daily data
 		daily_df = daily_numeric
 
+	# Report and fix non-finite values by copying previous day's values.
+	if numeric_cols:
+		numeric_daily = daily_df[numeric_cols]
+		non_finite_mask = ~np.isfinite(numeric_daily.to_numpy())
+		if non_finite_mask.any():
+			bad_rows = np.any(non_finite_mask, axis=1)
+			bad_indices = np.where(bad_rows)[0]
+			print("Non-finite daily values detected:")
+			for row_idx in bad_indices:
+				date_str = daily_df.index[row_idx].strftime("%Y-%m-%d")
+				bad_cols = [
+					col
+					for col_idx, col in enumerate(numeric_cols)
+					if non_finite_mask[row_idx, col_idx]
+				]
+				print(f"  - {date_str}: {', '.join(bad_cols)}")
+
+			if non_finite_strategy == "drop":
+				before = len(daily_df)
+				daily_df = daily_df.loc[~bad_rows]
+				after = len(daily_df)
+				print(f"Dropped {before - after} dates with non-finite values.")
+			elif non_finite_strategy == "ffill":
+				daily_df[numeric_cols] = daily_df[numeric_cols].ffill()
+				remaining_mask = ~np.isfinite(daily_df[numeric_cols].to_numpy())
+				if remaining_mask.any():
+					# If the first day is non-finite, fall back to backward fill.
+					daily_df[numeric_cols] = daily_df[numeric_cols].bfill()
+					remaining_mask = ~np.isfinite(daily_df[numeric_cols].to_numpy())
+				if remaining_mask.any():
+					raise ValueError("Non-finite values remain after forward/backward fill.")
+
 	# Reset index to turn 'Datetime' back into a column
 	daily_df = daily_df.reset_index()
 	return daily_df
@@ -113,7 +157,7 @@ if __name__ == "__main__":
 	if not input_file.exists():
 		raise FileNotFoundError(f"Input file not found: {input_file}")
 
-	daily_df = convert_to_daily(input_file)
+	daily_df = convert_to_daily(input_file, args.non_finite_strategy)
 
 	print(f"Saving daily data to {output_file}")
 	daily_df.to_csv(output_file, index=False)

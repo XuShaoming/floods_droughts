@@ -23,7 +23,7 @@ import yaml
 
 from dataloader_global import GlobalFloodDroughtDataLoader
 from models.CTLSTM import CTLSTM
-from train import calculate_metrics
+from utils import calculate_metrics
 
 
 def resolve_device(device_cfg):

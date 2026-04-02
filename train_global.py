@@ -23,7 +23,7 @@ import numpy as np
 
 from dataloader_global import GlobalFloodDroughtDataLoader
 from models.CTLSTM import CTLSTM
-from train import (
+from utils import (
     EarlyStopping,
     calculate_metrics,
     get_scheduler,

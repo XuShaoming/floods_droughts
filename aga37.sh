@@ -71,7 +71,7 @@
 # wait
 # )
 
-(
+# (
 # python inference.py --model-dir experiments/streamflow_exp3 --model-trained final_model.pth --dataset train --analysis &
 # python inference.py --model-dir experiments/streamflow_exp3 --model-trained final_model.pth --dataset test --analysis & 
 # python inference.py --model-dir experiments/streamflow_exp3 --model-trained final_model.pth --dataset val --analysis &
@@ -136,8 +136,8 @@
 # python inference_mtl.py --model-dir experiments/streamflow_hmtl_uncertainty --model-trained best_model.pth --dataset val --analysis --stride 24 &
 # python inference_mtl.py --model-dir experiments/streamflow_hmtl_uncertainty --model-trained best_model.pth --dataset test --analysis --stride 24 &
 
-wait
-)
+# wait
+# )
 
 # python process_flow_data.py
 # python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "hist_scaled" --resolution "daily"
