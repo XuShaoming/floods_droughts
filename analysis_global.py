@@ -10,7 +10,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import matplotlib
 
@@ -75,6 +75,252 @@ def load_dataframe(path: str, file_format: str) -> pd.DataFrame:
     if "timestamp" in df.columns:
         df["timestamp"] = pd.to_datetime(df["timestamp"])
     return df
+
+
+def empirical_cdf(values: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Return sorted values and cumulative probabilities."""
+    if values.size == 0:
+        return np.array([]), np.array([])
+    sorted_vals = np.sort(values)
+    probs = np.arange(1, values.size + 1, dtype=np.float64) / values.size
+    return sorted_vals, probs
+
+
+def exceedance_curve(values: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Return sorted values and exceedance probabilities P(X >= x)."""
+    if values.size == 0:
+        return np.array([]), np.array([])
+    sorted_vals = np.sort(values)
+    ranks = np.arange(1, values.size + 1, dtype=np.float64)
+    exceedance = 1.0 - (ranks - 0.5) / values.size
+    return sorted_vals, exceedance
+
+
+def clean_pair(obs_series: pd.Series, pred_series: pd.Series) -> Tuple[np.ndarray, np.ndarray]:
+    """Drop missing and non-finite values and return aligned arrays."""
+    df = pd.DataFrame({"obs": obs_series, "pred": pred_series})
+    df = df.replace([np.inf, -np.inf], np.nan).dropna(axis=0)
+    return df["obs"].to_numpy(dtype=np.float64), df["pred"].to_numpy(dtype=np.float64)
+
+
+def tail_metrics(obs: np.ndarray, pred: np.ndarray, quantiles: Sequence[float]) -> Dict[str, float]:
+    """
+    Compute upper-tail diagnostics for non-technical reporting.
+
+    For each quantile q:
+      - threshold_qXX: observed threshold at q
+      - tail_count_qXX: number of observed points above threshold
+      - tail_rmse_qXX: RMSE within observed tail
+      - tail_bias_pct_qXX: percent bias of total tail volume
+      - predicted_exceedance_rate_qXX: share of predictions above observed threshold
+      - observed_exceedance_rate_qXX: share of observations above observed threshold
+    """
+    out: Dict[str, float] = {}
+    if obs.size == 0:
+        return out
+
+    for q in quantiles:
+        q_int = int(q * 100)
+        threshold = float(np.quantile(obs, q))
+        mask = obs >= threshold
+        count = int(mask.sum())
+
+        out[f"threshold_q{q_int}"] = threshold
+        out[f"tail_count_q{q_int}"] = count
+
+        if count == 0:
+            out[f"tail_rmse_q{q_int}"] = float("nan")
+            out[f"tail_bias_pct_q{q_int}"] = float("nan")
+        else:
+            obs_tail = obs[mask]
+            pred_tail = pred[mask]
+            rmse = float(np.sqrt(np.mean((pred_tail - obs_tail) ** 2)))
+            obs_sum = float(np.sum(obs_tail))
+            pred_sum = float(np.sum(pred_tail))
+            bias_pct = float((pred_sum - obs_sum) / obs_sum * 100.0) if obs_sum != 0 else float("nan")
+            out[f"tail_rmse_q{q_int}"] = rmse
+            out[f"tail_bias_pct_q{q_int}"] = bias_pct
+
+        out[f"predicted_exceedance_rate_q{q_int}"] = float(np.mean(pred >= threshold))
+        out[f"observed_exceedance_rate_q{q_int}"] = float(np.mean(obs >= threshold))
+
+    return out
+
+
+def distribution_summary(obs: np.ndarray, pred: np.ndarray) -> Dict[str, float]:
+    """Return compact distribution and tail summary metrics."""
+    summary = {
+        "n_samples": int(obs.size),
+        "obs_mean": float(np.mean(obs)) if obs.size else float("nan"),
+        "pred_mean": float(np.mean(pred)) if pred.size else float("nan"),
+        "obs_median": float(np.median(obs)) if obs.size else float("nan"),
+        "pred_median": float(np.median(pred)) if pred.size else float("nan"),
+        "obs_p90": float(np.quantile(obs, 0.90)) if obs.size else float("nan"),
+        "pred_p90": float(np.quantile(pred, 0.90)) if pred.size else float("nan"),
+        "obs_p95": float(np.quantile(obs, 0.95)) if obs.size else float("nan"),
+        "pred_p95": float(np.quantile(pred, 0.95)) if pred.size else float("nan"),
+        "obs_p99": float(np.quantile(obs, 0.99)) if obs.size else float("nan"),
+        "pred_p99": float(np.quantile(pred, 0.99)) if pred.size else float("nan"),
+    }
+    summary.update(tail_metrics(obs, pred, quantiles=(0.90, 0.95, 0.99)))
+    return summary
+
+
+def plot_frequency_dashboard(obs: np.ndarray, pred: np.ndarray, title_prefix: str, output_path: str):
+    """Create a 4-panel frequency analysis figure with explicit tail diagnostics."""
+    if obs.size == 0 or pred.size == 0:
+        return
+
+    fig, axes = plt.subplots(2, 2, figsize=(13, 9), dpi=140)
+    ax_hist, ax_cdf, ax_exc, ax_qq = axes.flatten()
+
+    min_val = float(min(np.min(obs), np.min(pred)))
+    max_val = float(max(np.max(obs), np.max(pred)))
+    if min_val == max_val:
+        max_val = min_val + 1.0
+    bins = np.linspace(min_val, max_val, 45)
+
+    # Histogram on log-y to make rare high-flow differences visible.
+    ax_hist.hist(obs, bins=bins, density=True, alpha=0.55, label="Observed", color="#1f77b4")
+    ax_hist.hist(pred, bins=bins, density=True, alpha=0.50, label="Predicted", color="#d62728")
+    ax_hist.set_yscale("log")
+    ax_hist.set_title("Distribution (Density, Log Y)")
+    ax_hist.set_xlabel("Streamflow")
+    ax_hist.set_ylabel("Density")
+    ax_hist.grid(True, alpha=0.25)
+    ax_hist.legend(loc="best")
+
+    obs_x, obs_cdf = empirical_cdf(obs)
+    pred_x, pred_cdf = empirical_cdf(pred)
+    ax_cdf.plot(obs_x, obs_cdf, label="Observed", color="#1f77b4", linewidth=2)
+    ax_cdf.plot(pred_x, pred_cdf, label="Predicted", color="#d62728", linewidth=2)
+    ax_cdf.set_title("Cumulative Distribution (CDF)")
+    ax_cdf.set_xlabel("Streamflow")
+    ax_cdf.set_ylabel("Cumulative probability")
+    ax_cdf.grid(True, alpha=0.25)
+    ax_cdf.legend(loc="best")
+
+    obs_e_x, obs_ex = exceedance_curve(obs)
+    pred_e_x, pred_ex = exceedance_curve(pred)
+    ax_exc.plot(obs_e_x, obs_ex, label="Observed", color="#1f77b4", linewidth=2)
+    ax_exc.plot(pred_e_x, pred_ex, label="Predicted", color="#d62728", linewidth=2)
+    ax_exc.set_yscale("log")
+    ax_exc.set_title("Exceedance Probability (Upper Tail Focus)")
+    ax_exc.set_xlabel("Streamflow threshold")
+    ax_exc.set_ylabel("P(X >= threshold)")
+    ax_exc.grid(True, alpha=0.25)
+    ax_exc.legend(loc="best")
+
+	# Panel 4: Scatter plot of Q-Q plot
+    # q = np.linspace(0.01, 0.99, 99)
+    # obs_q = np.quantile(obs, q)
+    # pred_q = np.quantile(pred, q)
+    # qq_min = float(min(np.min(obs_q), np.min(pred_q)))
+    # qq_max = float(max(np.max(obs_q), np.max(pred_q)))
+    # ax_qq.scatter(obs_q, pred_q, s=16, alpha=0.7, color="#2ca02c", label="Quantiles")
+    # ax_qq.plot([qq_min, qq_max], [qq_min, qq_max], "k--", linewidth=1.3, label="1:1 line")
+    # ax_qq.set_title("Q-Q Plot")
+    # ax_qq.set_xlabel("Observed quantiles")
+    # ax_qq.set_ylabel("Predicted quantiles")
+    # ax_qq.grid(True, alpha=0.25)
+    # ax_qq.legend(loc="best")
+
+    # Panel 4: Scatter plot of observed vs predicted with 1:1 reference.
+    scatter_min = float(min(np.min(obs), np.min(pred)))
+    scatter_max = float(max(np.max(obs), np.max(pred)))
+    ax_qq.scatter(obs, pred, s=12, alpha=0.5, color="#2ca02c", label="Samples")
+    ax_qq.plot([scatter_min, scatter_max], [scatter_min, scatter_max], "k--", linewidth=1.3, label="1:1 line")
+    ax_qq.set_title("Observed vs Predicted (Scatter)")
+    ax_qq.set_xlabel("Observed streamflow")
+    ax_qq.set_ylabel("Predicted streamflow")
+    ax_qq.grid(True, alpha=0.25)
+    ax_qq.legend(loc="best")
+
+    p95_obs = float(np.quantile(obs, 0.95))
+    obs_exceed_rate = float(np.mean(obs >= p95_obs))
+    pred_exceed_rate = float(np.mean(pred >= p95_obs))
+    tail_gap = pred_exceed_rate - obs_exceed_rate
+    fig.suptitle(
+        f"{title_prefix}\n"
+        f"Tail check at observed P95 threshold: observed exceedance={obs_exceed_rate:.3f}, "
+        f"predicted exceedance={pred_exceed_rate:.3f}, gap={tail_gap:+.3f}",
+        fontsize=12,
+    )
+
+    plt.tight_layout(rect=(0, 0, 1, 0.94))
+    ensure_dir(os.path.dirname(output_path))
+    plt.savefig(output_path)
+    plt.close(fig)
+
+
+def run_frequency_analysis_for_reconstruction(
+    recon_df: pd.DataFrame,
+    split: str,
+    watershed: str,
+    method: str,
+    target_names: Sequence[str],
+    output_dir: str,
+    min_samples: int,
+) -> pd.DataFrame:
+    """
+    Analyze reconstructed time-series distributions and save plots/tables.
+
+    This function is designed for stakeholder reporting. It produces:
+    - one frequency dashboard plot per scenario and target
+    - one summary table with central and tail-focused metrics
+    """
+    if recon_df.empty:
+        return pd.DataFrame()
+
+    working = recon_df.copy()
+    if "scenario" not in working.columns:
+        working["scenario"] = "all"
+
+    all_rows: List[Dict[str, Union[str, int, float]]] = []
+    scenarios = sorted(working["scenario"].dropna().unique().tolist())
+    if not scenarios:
+        scenarios = ["all"]
+
+    for scenario in scenarios:
+        scenario_df = working[working["scenario"] == scenario].copy()
+        if scenario_df.empty:
+            continue
+
+        scenario_dir = os.path.join(output_dir, split, sanitize_name(watershed), sanitize_name(str(scenario)), method)
+        ensure_dir(scenario_dir)
+
+        for target_name in target_names:
+            obs_col = f"obs_{target_name}"
+            pred_col = f"pred_{target_name}"
+            if obs_col not in scenario_df.columns or pred_col not in scenario_df.columns:
+                continue
+
+            obs, pred = clean_pair(scenario_df[obs_col], scenario_df[pred_col])
+            if obs.size < min_samples:
+                continue
+
+            title = f"{watershed} | {scenario} | {split} | reconstruction={method} | target={target_name}"
+            plot_path = os.path.join(scenario_dir, f"{target_name}_frequency_distribution.png")
+            plot_frequency_dashboard(obs, pred, title, plot_path)
+
+            row: Dict[str, Union[str, int, float]] = {
+                "split": split,
+                "watershed": watershed,
+                "scenario": str(scenario),
+                "reconstruction_method": method,
+                "target": target_name,
+                "plot_path": os.path.relpath(plot_path, output_dir),
+            }
+            row.update(distribution_summary(obs, pred))
+            all_rows.append(row)
+
+    if not all_rows:
+        return pd.DataFrame()
+
+    summary_df = pd.DataFrame(all_rows).sort_values(
+        ["split", "watershed", "scenario", "reconstruction_method", "target"]
+    )
+    return summary_df
 
 
 def basic_metrics(pred: np.ndarray, obs: np.ndarray) -> Dict[str, float]:
@@ -235,6 +481,23 @@ def parse_args():
         default=None,
         help="Subset of reconstruction methods to analyze.",
     )
+    parser.add_argument(
+        "--disable-frequency-analysis",
+        action="store_true",
+        help="Disable frequency distribution analysis for reconstructed time series.",
+    )
+    parser.add_argument(
+        "--frequency-min-samples",
+        type=int,
+        default=100,
+        help="Minimum valid samples required per scenario/target to generate frequency plots.",
+    )
+    parser.add_argument(
+        "--frequency-output",
+        type=str,
+        default=None,
+        help="Output subdirectory for frequency artifacts (default: frequency_analysis).",
+    )
     return parser.parse_args()
 
 
@@ -316,11 +579,16 @@ def main():
     metrics_subdir = config.get("metrics_output", "analysis_results")
     analysis_dir = os.path.join(results_dir, metrics_subdir)
     ensure_dir(analysis_dir)
+    frequency_output = args.frequency_output or config.get("frequency_output", "frequency_analysis")
+    frequency_dir = os.path.join(analysis_dir, frequency_output)
+    if not args.disable_frequency_analysis:
+        ensure_dir(frequency_dir)
 
     window_plot_cfg: Dict[str, List[int]] = config.get("window_plots", {})
     timeseries_cfg: Dict[str, List[Dict]] = config.get("timeseries_plots", {})
 
     summary_metrics: Dict[str, Dict] = {}
+    frequency_rows_all: List[pd.DataFrame] = []
 
     for split in splits_to_analyze:
         split_summary = {"windowed": {}, "reconstructed": {}}
@@ -391,6 +659,19 @@ def main():
                     os.path.join(split_analysis_dir, f"{ws_key}_{split}_reconstructed_{method}_metrics.json"),
                 )
 
+                if not args.disable_frequency_analysis:
+                    frequency_df = run_frequency_analysis_for_reconstruction(
+                        recon_df=recon_df,
+                        split=split,
+                        watershed=watershed,
+                        method=method,
+                        target_names=target_names,
+                        output_dir=frequency_dir,
+                        min_samples=args.frequency_min_samples,
+                    )
+                    if not frequency_df.empty:
+                        frequency_rows_all.append(frequency_df)
+
             plot_requests = timeseries_cfg.get(watershed, [])
             if isinstance(plot_requests, dict):
                 plot_requests = [plot_requests]
@@ -428,6 +709,18 @@ def main():
         save_metrics(split_summary, os.path.join(split_analysis_dir, "summary_metrics.json"))
 
     save_metrics(summary_metrics, os.path.join(analysis_dir, "summary_metrics_all_splits.json"))
+
+    if not args.disable_frequency_analysis:
+        if frequency_rows_all:
+            combined_frequency = pd.concat(frequency_rows_all, ignore_index=True).sort_values(
+                ["split", "watershed", "scenario", "reconstruction_method", "target"]
+            )
+            combined_frequency.to_csv(os.path.join(frequency_dir, "frequency_summary.csv"), index=False)
+            with open(os.path.join(frequency_dir, "frequency_summary.json"), "w") as f:
+                json.dump(combined_frequency.to_dict(orient="records"), f, indent=2)
+        else:
+            print("Frequency analysis did not generate outputs (possibly due to missing columns or low sample counts).")
+
     print(f"\nAnalysis complete. Reports and plots saved to {analysis_dir}")
 
 

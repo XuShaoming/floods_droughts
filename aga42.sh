@@ -23,10 +23,12 @@
 # python combine_eddev_flow.py --basin "Watonwan" --scenario "hist_scaled"
 
 #######
+# python process_flow_data.py
 
-
-# # python process_eddev_data.py --all --basin "WatonwanR_Watersheds" --scenario "RCP4.5"
+# python process_eddev_data.py --all --basin "WatonwanR_Watersheds" --scenario "Historical"
+# python process_eddev_data.py --all --basin "WatonwanR_Watersheds" --scenario "RCP4.5"
 # python process_eddev_data.py --all --basin "WatonwanR_Watersheds" --scenario "RCP8.5"
+# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "hist_scaled"
 # python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "RCP4.5"
 # python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "RCP8.5"
 # python combine_eddev_flow.py --basin "Watonwan" --scenario "RCP4.5"
@@ -324,5 +326,75 @@
 # python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_no_IMVs_inference &
 # python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_inference &
 
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_no_IMVs_analysis &
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_analysis &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_no_IMVs_analysis &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_analysis &
+
+# python analysis_usgs_obs.py --watershed Zumbro --gauge 05374000 &
+
+
+# python analysis_usgs_obs.py --watershed KettleRiverModels --gauge 05336700
+# python analysis_usgs_obs.py --watershed LeSueur --gauge 05320500 &
+# python analysis_usgs_obs.py --watershed LittleFork --gauge 05131500 &
+# python analysis_usgs_obs.py --watershed SnakeSE --gauge 05338500 &
+# python analysis_usgs_obs.py --watershed Watonwan --gauge 05319500 &
+# python analysis_usgs_obs.py --watershed BlueEarth --gauge 05320000
+
+
+
+
+# # Hourly global streamflow with daily IMV inputs
+# # python combine_imv_outputs.py
+# # python combine_daily_imv_outputs_hourly_streamflow_hourly_eddy.py
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_PET &
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_ET &
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SUPY &
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_WYIE &
+# wait 
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SNOW &
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_TWS &
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_LZS &
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_AGW &
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow &
+# wait
+
+
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_PET_inference &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_ET_inference &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SUPY_inference &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_WYIE_inference &
+# wait
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SNOW_inference &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_TWS_inference &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_LZS_inference &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_AGW_inference &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_inference &
+# wait
+
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_PET_analysis &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_ET_analysis &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SUPY_analysis &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_WYIE_analysis &
+# wait
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SNOW_analysis &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_TWS_analysis &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_LZS_analysis &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_AGW_analysis &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_analysis &
+# wait
+
+
+
+
+#######
+# python process_flow_data.py
+
+# python process_eddev_data.py --all --basin "WatonwanR_Watersheds" --scenario "Historical"
+# python process_eddev_data.py --all --basin "WatonwanR_Watersheds" --scenario "RCP4.5"
+# python process_eddev_data.py --all --basin "WatonwanR_Watersheds" --scenario "RCP8.5"
+# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "hist_scaled"
+# python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "RCP4.5"
+# python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "RCP8.5"
+# python combine_eddev_flow.py --basin "Watonwan" --scenario "RCP4.5"
+# python combine_eddev_flow.py --basin "Watonwan" --scenario "RCP8.5"
+# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "RCP4.5"
+# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "RCP8.5"

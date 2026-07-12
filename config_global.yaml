@@ -96,8 +96,8 @@ default_timeseries_valid_range: &DEFAULT_TIMESERIES_VALID_RANGE
 # Flip this alias between *DEFAULT_TIMESERIES_TEST_RANGE, *DEFAULT_TIMESERIES_TRAIN_RANGE,
 # and *DEFAULT_TIMESERIES_VALID_RANGE as needed.
 default_timeseries_range: &DEFAULT_TIMESERIES_RANGE
-  # <<: *DEFAULT_TIMESERIES_TEST_RANGE
-  <<: *DEFAULT_TIMESERIES_TRAIN_RANGE
+  <<: *DEFAULT_TIMESERIES_TEST_RANGE
+  # <<: *DEFAULT_TIMESERIES_TRAIN_RANGE
   # <<: *DEFAULT_TIMESERIES_VALID_RANGE
 
 default_experiment: streamflow_global_exp1
@@ -193,7 +193,7 @@ streamflow_hmtl_global: &STREAMFLOW_HMTL_GLOBAL
       ET: 0.8
   static_embedding_layers: [128, 64]
   static_dropout: 0.1
-  device: "cuda:1"
+  device: "cuda:2"
 
 streamflow_hmtl_global_test:
   <<: *STREAMFLOW_HMTL_GLOBAL
@@ -765,3 +765,418 @@ hourly_global_streamflow_observed_IMVs_analysis:
       - *DEFAULT_TIMESERIES_RANGE
     SnakeSE:
       - *DEFAULT_TIMESERIES_RANGE 
+
+
+
+
+
+
+
+
+hourly_global_streamflow_pred_PET: &hourly_global_streamflow_pred_PET
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Hourly streamflow model that incorporates daily IMV predictions as additional inputs.
+  data_dir: "experiments/data_processed"
+  csv_pattern: "{watershed}_{scenario}_combined.csv"
+  window_size: 384
+  stride: 192
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "pred_PET"]
+
+hourly_global_streamflow_pred_PET_inference: &hourly_global_streamflow_pred_PET_inference
+  <<: *hourly_global_streamflow_pred_PET
+  description: >
+    Inference configuration for hourly_global_streamflow_pred_PET.
+  source_experiment: "hourly_global_streamflow_pred_PET"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+hourly_global_streamflow_pred_PET_analysis:
+  <<: *hourly_global_streamflow_pred_PET_inference
+  description: >
+    Analysis configuration for hourly_global_streamflow_pred_PET inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+
+hourly_global_streamflow_pred_ET: &hourly_global_streamflow_pred_ET
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Hourly streamflow model that incorporates daily IMV predictions as additional inputs.
+  data_dir: "experiments/data_processed"
+  csv_pattern: "{watershed}_{scenario}_combined.csv"
+  window_size: 384
+  stride: 192
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "pred_ET"]
+
+hourly_global_streamflow_pred_ET_inference: &hourly_global_streamflow_pred_ET_inference
+  <<: *hourly_global_streamflow_pred_ET
+  description: >
+    Inference configuration for hourly_global_streamflow_pred_ET.
+  source_experiment: "hourly_global_streamflow_pred_ET"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+hourly_global_streamflow_pred_ET_analysis:
+  <<: *hourly_global_streamflow_pred_ET_inference
+  description: >
+    Analysis configuration for hourly_global_streamflow_pred_ET inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+hourly_global_streamflow_pred_SUPY: &hourly_global_streamflow_pred_SUPY
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Hourly streamflow model that incorporates daily IMV predictions as additional inputs.
+  data_dir: "experiments/data_processed"
+  csv_pattern: "{watershed}_{scenario}_combined.csv"
+  window_size: 384
+  stride: 192
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "pred_SUPY"]
+
+hourly_global_streamflow_pred_SUPY_inference: &hourly_global_streamflow_pred_SUPY_inference
+  <<: *hourly_global_streamflow_pred_SUPY
+  description: >
+    Inference configuration for hourly_global_streamflow_pred_SUPY.
+  source_experiment: "hourly_global_streamflow_pred_SUPY"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+hourly_global_streamflow_pred_SUPY_analysis:
+  <<: *hourly_global_streamflow_pred_SUPY_inference
+  description: >
+    Analysis configuration for hourly_global_streamflow_pred_SUPY inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+
+hourly_global_streamflow_pred_WYIE: &hourly_global_streamflow_pred_WYIE
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Hourly streamflow model that incorporates daily IMV predictions as additional inputs.
+  data_dir: "experiments/data_processed"
+  csv_pattern: "{watershed}_{scenario}_combined.csv"
+  window_size: 384
+  stride: 192
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "pred_WYIE"]
+
+hourly_global_streamflow_pred_WYIE_inference: &hourly_global_streamflow_pred_WYIE_inference
+  <<: *hourly_global_streamflow_pred_WYIE
+  description: >
+    Inference configuration for hourly_global_streamflow_pred_WYIE.
+  source_experiment: "hourly_global_streamflow_pred_WYIE"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+hourly_global_streamflow_pred_WYIE_analysis:
+  <<: *hourly_global_streamflow_pred_WYIE_inference
+  description: >
+    Analysis configuration for hourly_global_streamflow_pred_WYIE inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+
+hourly_global_streamflow_pred_SNOW: &hourly_global_streamflow_pred_SNOW 
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Hourly streamflow model that incorporates daily IMV predictions as additional inputs.
+  data_dir: "experiments/data_processed"
+  csv_pattern: "{watershed}_{scenario}_combined.csv"
+  window_size: 384
+  stride: 192
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH","pred_SNOW"]
+
+hourly_global_streamflow_pred_SNOW_inference: &hourly_global_streamflow_pred_SNOW_inference
+  <<: *hourly_global_streamflow_pred_SNOW
+  description: >
+    Inference configuration for hourly_global_streamflow_pred_SNOW.
+  source_experiment: "hourly_global_streamflow_pred_SNOW"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+hourly_global_streamflow_pred_SNOW_analysis:
+  <<: *hourly_global_streamflow_pred_SNOW_inference
+  description: >
+    Analysis configuration for hourly_global_streamflow_pred_SNOW inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+
+hourly_global_streamflow_pred_TWS: &hourly_global_streamflow_pred_TWS 
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Hourly streamflow model that incorporates daily IMV predictions as additional inputs.
+  data_dir: "experiments/data_processed"
+  csv_pattern: "{watershed}_{scenario}_combined.csv"
+  window_size: 384
+  stride: 192
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "pred_TWS"]
+
+hourly_global_streamflow_pred_TWS_inference: &hourly_global_streamflow_pred_TWS_inference
+  <<: *hourly_global_streamflow_pred_TWS
+  description: >
+    Inference configuration for hourly_global_streamflow_pred_TWS.
+  source_experiment: "hourly_global_streamflow_pred_TWS"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+hourly_global_streamflow_pred_TWS_analysis:
+  <<: *hourly_global_streamflow_pred_TWS_inference
+  description: >
+    Analysis configuration for hourly_global_streamflow_pred_TWS inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+hourly_global_streamflow_pred_LZS: &hourly_global_streamflow_pred_LZS
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Hourly streamflow model that incorporates daily IMV predictions as additional inputs.
+  data_dir: "experiments/data_processed"
+  csv_pattern: "{watershed}_{scenario}_combined.csv"
+  window_size: 384
+  stride: 192
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH","pred_LZS"]
+
+hourly_global_streamflow_pred_LZS_inference: &hourly_global_streamflow_pred_LZS_inference
+  <<: *hourly_global_streamflow_pred_LZS
+  description: >
+    Inference configuration for hourly_global_streamflow_pred_LZS.
+  source_experiment: "hourly_global_streamflow_pred_LZS"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+hourly_global_streamflow_pred_LZS_analysis:
+  <<: *hourly_global_streamflow_pred_LZS_inference
+  description: >
+    Analysis configuration for hourly_global_streamflow_pred_LZS inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+hourly_global_streamflow_pred_AGW: &hourly_global_streamflow_pred_AGW
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Hourly streamflow model that incorporates daily IMV predictions as additional inputs.
+  data_dir: "experiments/data_processed"
+  csv_pattern: "{watershed}_{scenario}_combined.csv"
+  window_size: 384
+  stride: 192
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "pred_AGW"]
+
+hourly_global_streamflow_pred_AGW_inference: &hourly_global_streamflow_pred_AGW_inference
+  <<: *hourly_global_streamflow_pred_AGW
+  description: >
+    Inference configuration for hourly_global_streamflow_pred_AGW.
+  source_experiment: "hourly_global_streamflow_pred_AGW"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+hourly_global_streamflow_pred_AGW_analysis:
+  <<: *hourly_global_streamflow_pred_AGW_inference
+  description: >
+    Analysis configuration for hourly_global_streamflow_pred_AGW inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
+
+
+hourly_global_streamflow_pred_streamflow: &hourly_global_streamflow_pred_streamflow
+  <<: *BASE_GLOBAL_CONFIG
+  description: >
+    Hourly streamflow model that incorporates daily IMV predictions as additional inputs.
+  data_dir: "experiments/data_processed"
+  csv_pattern: "{watershed}_{scenario}_combined.csv"
+  window_size: 384
+  stride: 192
+  target_cols: ["streamflow"]
+  feature_cols: ["T2", "DEWPT", "PRECIP", "SWDNB", "WSPD10", "LH", "pred_streamflow"]
+
+hourly_global_streamflow_pred_streamflow_inference: &hourly_global_streamflow_pred_streamflow_inference
+  <<: *hourly_global_streamflow_pred_streamflow
+  description: >
+    Inference configuration for hourly_global_streamflow_pred_streamflow.
+  source_experiment: "hourly_global_streamflow_pred_streamflow"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+hourly_global_streamflow_pred_streamflow_analysis:
+  <<: *hourly_global_streamflow_pred_streamflow_inference
+  description: >
+    Analysis configuration for hourly_global_streamflow_pred_streamflow inference outputs.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+  timeseries_plots:
+    KettleRiverModels:
+      - *DEFAULT_TIMESERIES_RANGE
+    BlueEarth:
+      - *DEFAULT_TIMESERIES_RANGE
+    Watonwan:
+      - *DEFAULT_TIMESERIES_RANGE
+    LeSueur:
+      - *DEFAULT_TIMESERIES_RANGE
+    LittleFork:
+      - *DEFAULT_TIMESERIES_RANGE
+    Zumbro:
+      - *DEFAULT_TIMESERIES_RANGE
+    SnakeSE:
+      - *DEFAULT_TIMESERIES_RANGE
