@@ -159,3 +159,15 @@
 # python analysis_hmtl_global.py --config config_local.yaml --experiment streamflow_hmtl_kettle_river_state_hourly_analysis --split test val train &
 # wait
 # }
+
+python process_eddev_data.py --all --basin "SFCrow_Watersheds" --scenario "RCP8.5" &
+python process_eddev_data.py --all --basin "TwoRivers_Watersheds" --scenario "Historical" &
+python process_eddev_data.py --all --basin "TwoRivers_Watersheds" --scenario "RCP4.5" &
+python process_eddev_data.py --all --basin "TwoRivers_Watersheds" --scenario "RCP8.5" &
+
+
+wait 
+python combine_eddev_flow.py --basin "SFCrow" --scenario "RCP8.5" &
+python combine_eddev_flow.py --basin "TwoRivers" --scenario "hist_scaled" &
+python combine_eddev_flow.py --basin "TwoRivers" --scenario "RCP4.5" &
+python combine_eddev_flow.py --basin "TwoRivers" --scenario "RCP8.5" &

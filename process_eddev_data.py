@@ -26,7 +26,12 @@ basin_names ={
     'BlueEarthR_Watersheds': 'BlueEarth',
     'LittleFork_Watersheds': 'LittleFork',
     'SnakeSE_Watersheds': 'SnakeSE',
-    'Zumbro_Watersheds': 'Zumbro'
+    'Zumbro_Watersheds': 'Zumbro',
+    'Cloquet_Watersheds': 'Cloquet',
+    'Sauk_Watersheds': 'Sauk',
+    'SFCrow_Watersheds': 'SFCrow',
+    'TwoRivers_Watersheds': 'TwoRivers',
+    'WildRiceMarsh_Watersheds': 'WildRiceMarsh'
 }
 
 scenario_names = {

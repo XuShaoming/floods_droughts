@@ -388,13 +388,45 @@
 #######
 # python process_flow_data.py
 
+
+# basin_names ={
+#     'WatonwanR_Watersheds': 'Watonwan',
+#     'LeSueurR_Watersheds': 'LeSueur',
+#     'KettleR_Watersheds': 'KettleRiverModels',
+#     'BlueEarthR_Watersheds': 'BlueEarth',
+#     'LittleFork_Watersheds': 'LittleFork',
+#     'SnakeSE_Watersheds': 'SnakeSE',
+#     'Zumbro_Watersheds': 'Zumbro',
+
+#     'Cloquet_Watersheds': 'Cloquet',
+#     'Sauk_Watersheds': 'Sauk',
+#     'SFCrow_Watersheds': 'SFCrow',
+#     'TwoRivers_Watersheds': 'TwoRivers',
+#     'WildRice_Watersheds': 'WildRiceMarsh'
+# }
+
 # python process_eddev_data.py --all --basin "WatonwanR_Watersheds" --scenario "Historical"
 # python process_eddev_data.py --all --basin "WatonwanR_Watersheds" --scenario "RCP4.5"
 # python process_eddev_data.py --all --basin "WatonwanR_Watersheds" --scenario "RCP8.5"
-# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "hist_scaled"
-# python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "RCP4.5"
-# python process_eddev_data.py --all --basin "KettleR_Watersheds" --scenario "RCP8.5"
+# python combine_eddev_flow.py --basin "Watonwan" --scenario "hist_scaled"
 # python combine_eddev_flow.py --basin "Watonwan" --scenario "RCP4.5"
 # python combine_eddev_flow.py --basin "Watonwan" --scenario "RCP8.5"
-# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "RCP4.5"
-# python combine_eddev_flow.py --basin "KettleRiverModels" --scenario "RCP8.5"
+
+python process_eddev_data.py --all --basin "Cloquet_Watersheds" --scenario "Historical" &
+python process_eddev_data.py --all --basin "Cloquet_Watersheds" --scenario "RCP4.5" &
+python process_eddev_data.py --all --basin "Cloquet_Watersheds" --scenario "RCP8.5" &
+python process_eddev_data.py --all --basin "Sauk_Watersheds" --scenario "Historical" &
+python process_eddev_data.py --all --basin "Sauk_Watersheds" --scenario "RCP4.5" &
+python process_eddev_data.py --all --basin "Sauk_Watersheds" --scenario "RCP8.5" &
+python process_eddev_data.py --all --basin "SFCrow_Watersheds" --scenario "Historical" &
+python process_eddev_data.py --all --basin "SFCrow_Watersheds" --scenario "RCP4.5" &
+
+wait
+python combine_eddev_flow.py --basin "Cloquet" --scenario "hist_scaled" &
+python combine_eddev_flow.py --basin "Cloquet" --scenario "RCP4.5" & 
+python combine_eddev_flow.py --basin "Cloquet" --scenario "RCP8.5" &
+python combine_eddev_flow.py --basin "Sauk" --scenario "hist_scaled" &
+python combine_eddev_flow.py --basin "Sauk" --scenario "RCP4.5" &
+python combine_eddev_flow.py --basin "Sauk" --scenario "RCP8.5" &
+python combine_eddev_flow.py --basin "SFCrow" --scenario "hist_scaled" &
+python combine_eddev_flow.py --basin "SFCrow" --scenario "RCP4.5" &
