@@ -8,6 +8,49 @@
 # hspf_CAT_attributes.csv are embedded and concatenated with dynamic meteorological
 # sequences during training.
 
+# basin_names ={
+#     'WatonwanR_Watersheds': 'Watonwan',
+#     'LeSueurR_Watersheds': 'LeSueur',
+#     'KettleR_Watersheds': 'KettleRiverModels',
+#     'BlueEarthR_Watersheds': 'BlueEarth',
+#     'LittleFork_Watersheds': 'LittleFork',
+#     'SnakeSE_Watersheds': 'SnakeSE',
+#     'Zumbro_Watersheds': 'Zumbro',
+
+#     'Cloquet_Watersheds': 'Cloquet',
+#     'Sauk_Watersheds': 'Sauk',
+#     'SFCrow_Watersheds': 'SFCrow',
+#     'TwoRivers_Watersheds': 'TwoRivers',
+#     'WildRice_Watersheds': 'WildRiceMarsh'
+# }
+
+default_timeseries_test_range: &DEFAULT_TIMESERIES_TEST_RANGE
+  method: ["latest"]
+  start: "2001-01-01 00:00:00"
+  end: "2005-12-31 23:00:00"
+
+default_timeseries_train_range: &DEFAULT_TIMESERIES_TRAIN_RANGE
+  method: ["latest"]
+  start: "1980-01-01 00:00:00"
+  end: "2000-12-31 23:00:00"
+
+default_timeseries_valid_range: &DEFAULT_TIMESERIES_VALID_RANGE
+  method: ["latest"]
+  start: "1975-01-01 00:00:00"
+  end: "1979-12-31 23:00:00"
+
+# Flip this alias between *DEFAULT_TIMESERIES_TEST_RANGE, *DEFAULT_TIMESERIES_TRAIN_RANGE,
+# and *DEFAULT_TIMESERIES_VALID_RANGE as needed. The __default__ key applies the
+# selected range to every watershed, including watersheds added in the future.
+default_timeseries_range: &DEFAULT_TIMESERIES_RANGE
+  # <<: *DEFAULT_TIMESERIES_TEST_RANGE
+  <<: *DEFAULT_TIMESERIES_TRAIN_RANGE
+  # <<: *DEFAULT_TIMESERIES_VALID_RANGE
+
+default_timeseries_plots: &DEFAULT_TIMESERIES_PLOTS
+  __default__:
+    - *DEFAULT_TIMESERIES_RANGE
+
 base_global_config: &BASE_GLOBAL_CONFIG
   # Data configuration
   data_dir: "data_processed"
@@ -26,17 +69,17 @@ base_global_config: &BASE_GLOBAL_CONFIG
   scale_static_attributes: true
   dataset_splits:
     train:
-      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro", "SnakeSE"]
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro", "SnakeSE", "Cloquet", "Sauk", "SFCrow", "TwoRivers", "WildRiceMarsh"]
         scenarios: ["hist_scaled"]
         start: "1980-01-01 00:00:00"
         end: "2000-12-31 23:00:00"
     val:
-      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro", "SnakeSE"]
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro", "SnakeSE", "Cloquet", "Sauk", "SFCrow", "TwoRivers", "WildRiceMarsh"]
         scenarios: ["hist_scaled"]
         start: "1975-01-01 00:00:00"
         end: "1979-12-31 23:00:00"
     test:
-      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro", "SnakeSE"]
+      - watersheds: ["BlueEarth", "LeSueur", "Watonwan", "KettleRiverModels", "LittleFork", "Zumbro", "SnakeSE", "Cloquet", "Sauk", "SFCrow", "TwoRivers", "WildRiceMarsh"]
         scenarios: ["hist_scaled"]
         start: "2001-01-01 00:00:00"
         end: "2005-12-31 23:00:00"
@@ -69,6 +112,9 @@ base_global_config: &BASE_GLOBAL_CONFIG
   seed: 42
   device: "auto"           # Set to "cuda:0", "cuda:1", etc. to pin a specific GPU
 
+  # Applied to every watershed unless an experiment supplies a specific override.
+  timeseries_plots: *DEFAULT_TIMESERIES_PLOTS
+
 default_window_plots: &DEFAULT_WINDOW_PLOTS
   BlueEarth: [0, 1, 2, 3]
   LeSueur: [0, 1, 2, 3]
@@ -77,28 +123,6 @@ default_window_plots: &DEFAULT_WINDOW_PLOTS
   LittleFork: [0, 1, 2, 3]
   Zumbro: [0, 1, 2, 3]
   SnakeSE: [0, 1, 2, 3]
-
-default_timeseries_test_range: &DEFAULT_TIMESERIES_TEST_RANGE
-  method: ["latest"]
-  start: "2001-01-01 00:00:00"
-  end: "2005-12-31 23:00:00"
-
-default_timeseries_train_range: &DEFAULT_TIMESERIES_TRAIN_RANGE
-  method: ["latest"]
-  start: "1980-01-01 00:00:00"
-  end: "2000-12-31 23:00:00"
-
-default_timeseries_valid_range: &DEFAULT_TIMESERIES_VALID_RANGE
-  method: ["latest"]
-  start: "1975-01-01 00:00:00"
-  end: "1979-12-31 23:00:00"
-
-# Flip this alias between *DEFAULT_TIMESERIES_TEST_RANGE, *DEFAULT_TIMESERIES_TRAIN_RANGE,
-# and *DEFAULT_TIMESERIES_VALID_RANGE as needed.
-default_timeseries_range: &DEFAULT_TIMESERIES_RANGE
-  <<: *DEFAULT_TIMESERIES_TEST_RANGE
-  # <<: *DEFAULT_TIMESERIES_TRAIN_RANGE
-  # <<: *DEFAULT_TIMESERIES_VALID_RANGE
 
 default_experiment: streamflow_global_exp1
 
@@ -128,19 +152,7 @@ streamflow_global_exp1_inference: &streamflow_global_exp1_inference
     Watonwan: [0,1,2,3]
     KettleRiverModels: [0,1,2,3]
   timeseries_plots:
-    KettleRiverModels:
-      - method: ["latest", "average"]
-        start: "2001-01-01 00:00:00"
-        end: "2005-12-31 23:00:00"
-    BlueEarth:
-      - method: ["latest", "average"]
-        start: "2001-01-01 00:00:00"
-        end: "2005-12-31 23:00:00"
-    Watonwan:
-      - method: ["latest", "average"]
-        start: "2001-01-01 00:00:00"
-        end: "2005-12-31 23:00:00"
-    LeSueur:
+    __default__:
       - method: ["latest", "average"]
         start: "2001-01-01 00:00:00"
         end: "2005-12-31 23:00:00"
@@ -150,19 +162,7 @@ streamflow_global_exp1_inference_train:
   <<: *streamflow_global_exp1_inference
   split: ["train"]
   timeseries_plots:
-    KettleRiverModels:
-      - method: ["latest", "average"]
-        start: "1980-01-01 00:00:00"
-        end: "2000-12-31 23:00:00"
-    BlueEarth:
-      - method: ["latest", "average"]
-        start: "1980-01-01 00:00:00"
-        end: "2000-12-31 23:00:00"
-    Watonwan:
-      - method: ["latest", "average"]
-        start: "1980-01-01 00:00:00"
-        end: "2000-12-31 23:00:00"
-    LeSueur:
+    __default__:
       - method: ["latest", "average"]
         start: "1980-01-01 00:00:00"
         end: "2000-12-31 23:00:00"
@@ -171,7 +171,7 @@ streamflow_global_exp1_inference_val:
   <<: *streamflow_global_exp1_inference
   split: ["val"]
   timeseries_plots:
-    KettleRiverModels:
+    __default__:
       - method: ["latest", "average"]
         start: "1975-01-01 00:00:00"
         end: "1979-12-31 23:00:00"
@@ -268,21 +268,6 @@ daily_global_PET_analysis:
     Analysis configuration for daily_global_PET inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 daily_global_ET: &daily_global_ET
   <<: *BASE_GLOBAL_CONFIG
@@ -311,21 +296,6 @@ daily_global_ET_analysis:
     Analysis configuration for daily_global_ET inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 daily_global_SUPY: &daily_global_SUPY
@@ -355,21 +325,6 @@ daily_global_SUPY_analysis:
     Analysis configuration for daily_global_SUPY inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 daily_global_WYIE: &daily_global_WYIE
@@ -399,21 +354,6 @@ daily_global_WYIE_analysis:
     Analysis configuration for daily_global_WYIE inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 daily_global_SNOW: &daily_global_SNOW
   <<: *BASE_GLOBAL_CONFIG
@@ -442,21 +382,6 @@ daily_global_SNOW_analysis:
     Analysis configuration for daily_global_SNOW inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 daily_global_TWS: &daily_global_TWS
   <<: *BASE_GLOBAL_CONFIG
@@ -486,21 +411,6 @@ daily_global_TWS_analysis:
     Analysis configuration for daily_global_TWS inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 daily_global_LZS: &daily_global_LZS
@@ -530,21 +440,6 @@ daily_global_LZS_analysis:
     Analysis configuration for daily_global_LZS inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 daily_global_AGW: &daily_global_AGW
   <<: *BASE_GLOBAL_CONFIG
@@ -574,21 +469,6 @@ daily_global_AGW_analysis:
     Analysis configuration for daily_global_AGW inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 daily_global_streamflow: &daily_global_streamflow
   <<: *BASE_GLOBAL_CONFIG
@@ -617,21 +497,6 @@ daily_global_streamflow_analysis:
     Analysis configuration for daily_global_streamflow inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
     
 
 hourly_global_streamflow: &hourly_global_streamflow
@@ -662,21 +527,6 @@ hourly_global_streamflow_analysis:
     Analysis configuration for hourly_global_streamflow inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 hourly_global_streamflow_no_IMVs: &hourly_global_streamflow_no_IMVs
   <<: *BASE_GLOBAL_CONFIG
@@ -706,21 +556,6 @@ hourly_global_streamflow_no_IMVs_analysis:
     Analysis configuration for hourly_global_streamflow_no_IMVs inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan: 
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro: 
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE 
 
 hourly_global_streamflow_observed_IMVs: &hourly_global_streamflow_observed_IMVs
   <<: *BASE_GLOBAL_CONFIG
@@ -750,21 +585,6 @@ hourly_global_streamflow_observed_IMVs_analysis:
     Analysis configuration for hourly_global_streamflow_observed_IMVs inference outputs.
   metrics_output: "analysis_results"  
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan: 
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro: 
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE 
 
 
 
@@ -801,21 +621,6 @@ hourly_global_streamflow_pred_PET_analysis:
     Analysis configuration for hourly_global_streamflow_pred_PET inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 
@@ -847,21 +652,6 @@ hourly_global_streamflow_pred_ET_analysis:
     Analysis configuration for hourly_global_streamflow_pred_ET inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 hourly_global_streamflow_pred_SUPY: &hourly_global_streamflow_pred_SUPY
@@ -892,21 +682,6 @@ hourly_global_streamflow_pred_SUPY_analysis:
     Analysis configuration for hourly_global_streamflow_pred_SUPY inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 
@@ -938,21 +713,6 @@ hourly_global_streamflow_pred_WYIE_analysis:
     Analysis configuration for hourly_global_streamflow_pred_WYIE inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 
@@ -984,21 +744,6 @@ hourly_global_streamflow_pred_SNOW_analysis:
     Analysis configuration for hourly_global_streamflow_pred_SNOW inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 
@@ -1030,21 +775,6 @@ hourly_global_streamflow_pred_TWS_analysis:
     Analysis configuration for hourly_global_streamflow_pred_TWS inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 hourly_global_streamflow_pred_LZS: &hourly_global_streamflow_pred_LZS
@@ -1075,21 +805,6 @@ hourly_global_streamflow_pred_LZS_analysis:
     Analysis configuration for hourly_global_streamflow_pred_LZS inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 hourly_global_streamflow_pred_AGW: &hourly_global_streamflow_pred_AGW
@@ -1120,21 +835,6 @@ hourly_global_streamflow_pred_AGW_analysis:
     Analysis configuration for hourly_global_streamflow_pred_AGW inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE
 
 
 hourly_global_streamflow_pred_streamflow: &hourly_global_streamflow_pred_streamflow
@@ -1165,18 +865,3 @@ hourly_global_streamflow_pred_streamflow_analysis:
     Analysis configuration for hourly_global_streamflow_pred_streamflow inference outputs.
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
-  timeseries_plots:
-    KettleRiverModels:
-      - *DEFAULT_TIMESERIES_RANGE
-    BlueEarth:
-      - *DEFAULT_TIMESERIES_RANGE
-    Watonwan:
-      - *DEFAULT_TIMESERIES_RANGE
-    LeSueur:
-      - *DEFAULT_TIMESERIES_RANGE
-    LittleFork:
-      - *DEFAULT_TIMESERIES_RANGE
-    Zumbro:
-      - *DEFAULT_TIMESERIES_RANGE
-    SnakeSE:
-      - *DEFAULT_TIMESERIES_RANGE

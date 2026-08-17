@@ -176,8 +176,6 @@
 
 
 # python combined_eddev_flow_daily.py --basin KettleRiverModels --scenario hist_scaled
-
-
 # for basin in Watonwan LeSueur KettleRiverModels BlueEarth LittleFork Zumbro SnakeSE; do
 #     python combined_eddev_flow_daily.py --basin $basin --scenario hist_scaled &
 #     python combined_eddev_flow_daily.py --basin $basin --scenario RCP4.5 &
@@ -260,29 +258,24 @@
 # python train_global.py --config config_global.yaml --experiment daily_global_ET &
 # python train_global.py --config config_global.yaml --experiment daily_global_SUPY &
 # python train_global.py --config config_global.yaml --experiment daily_global_WYIE &
-# wait
 # python train_global.py --config config_global.yaml --experiment daily_global_SNOW &
 # python train_global.py --config config_global.yaml --experiment daily_global_TWS &
 # python train_global.py --config config_global.yaml --experiment daily_global_LZS &
 # python train_global.py --config config_global.yaml --experiment daily_global_AGW &
-# wait
 # python inference_global.py --config config_global.yaml --experiment daily_global_streamflow_inference &
 # python inference_global.py --config config_global.yaml --experiment daily_global_PET_inference & 
 # python inference_global.py --config config_global.yaml --experiment daily_global_ET_inference &
 # python inference_global.py --config config_global.yaml --experiment daily_global_SUPY_inference &
 # python inference_global.py --config config_global.yaml --experiment daily_global_WYIE_inference &
-# wait
 # python inference_global.py --config config_global.yaml --experiment daily_global_SNOW_inference &
 # python inference_global.py --config config_global.yaml --experiment daily_global_TWS_inference &
 # python inference_global.py --config config_global.yaml --experiment daily_global_LZS_inference &
 # python inference_global.py --config config_global.yaml --experiment daily_global_AGW_inference &
-# wait
 # python analysis_global.py --config config_global.yaml --experiment daily_global_streamflow_analysis &
 # python analysis_global.py --config config_global.yaml --experiment daily_global_PET_analysis  &
 # python analysis_global.py --config config_global.yaml --experiment daily_global_ET_analysis &
 # python analysis_global.py --config config_global.yaml --experiment daily_global_SUPY_analysis &
 # python analysis_global.py --config config_global.yaml --experiment daily_global_WYIE_analysis &
-# wait
 # python analysis_global.py --config config_global.yaml --experiment daily_global_SNOW_analysis &
 # python analysis_global.py --config config_global.yaml --experiment daily_global_TWS_analysis &
 # python analysis_global.py --config config_global.yaml --experiment daily_global_LZS_analysis &
@@ -412,21 +405,21 @@
 # python combine_eddev_flow.py --basin "Watonwan" --scenario "RCP4.5"
 # python combine_eddev_flow.py --basin "Watonwan" --scenario "RCP8.5"
 
-python process_eddev_data.py --all --basin "Cloquet_Watersheds" --scenario "Historical" &
-python process_eddev_data.py --all --basin "Cloquet_Watersheds" --scenario "RCP4.5" &
-python process_eddev_data.py --all --basin "Cloquet_Watersheds" --scenario "RCP8.5" &
-python process_eddev_data.py --all --basin "Sauk_Watersheds" --scenario "Historical" &
-python process_eddev_data.py --all --basin "Sauk_Watersheds" --scenario "RCP4.5" &
-python process_eddev_data.py --all --basin "Sauk_Watersheds" --scenario "RCP8.5" &
-python process_eddev_data.py --all --basin "SFCrow_Watersheds" --scenario "Historical" &
-python process_eddev_data.py --all --basin "SFCrow_Watersheds" --scenario "RCP4.5" &
+# python process_eddev_data.py --all --basin "Cloquet_Watersheds" --scenario "Historical" &
+# python process_eddev_data.py --all --basin "Cloquet_Watersheds" --scenario "RCP4.5" &
+# python process_eddev_data.py --all --basin "Cloquet_Watersheds" --scenario "RCP8.5" &
+# python process_eddev_data.py --all --basin "Sauk_Watersheds" --scenario "Historical" &
+# python process_eddev_data.py --all --basin "Sauk_Watersheds" --scenario "RCP4.5" &
+# python process_eddev_data.py --all --basin "Sauk_Watersheds" --scenario "RCP8.5" &
+# python process_eddev_data.py --all --basin "SFCrow_Watersheds" --scenario "Historical" &
+# python process_eddev_data.py --all --basin "SFCrow_Watersheds" --scenario "RCP4.5" &
 
-wait
-python combine_eddev_flow.py --basin "Cloquet" --scenario "hist_scaled" &
-python combine_eddev_flow.py --basin "Cloquet" --scenario "RCP4.5" & 
-python combine_eddev_flow.py --basin "Cloquet" --scenario "RCP8.5" &
-python combine_eddev_flow.py --basin "Sauk" --scenario "hist_scaled" &
-python combine_eddev_flow.py --basin "Sauk" --scenario "RCP4.5" &
-python combine_eddev_flow.py --basin "Sauk" --scenario "RCP8.5" &
-python combine_eddev_flow.py --basin "SFCrow" --scenario "hist_scaled" &
-python combine_eddev_flow.py --basin "SFCrow" --scenario "RCP4.5" &
+# wait
+# python combine_eddev_flow.py --basin "Cloquet" --scenario "hist_scaled" &
+# python combine_eddev_flow.py --basin "Cloquet" --scenario "RCP4.5" & 
+# python combine_eddev_flow.py --basin "Cloquet" --scenario "RCP8.5" &
+# python combine_eddev_flow.py --basin "Sauk" --scenario "hist_scaled" &
+# python combine_eddev_flow.py --basin "Sauk" --scenario "RCP4.5" &
+# python combine_eddev_flow.py --basin "Sauk" --scenario "RCP8.5" &
+# python combine_eddev_flow.py --basin "SFCrow" --scenario "hist_scaled" &
+# python combine_eddev_flow.py --basin "SFCrow" --scenario "RCP4.5" &

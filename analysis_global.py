@@ -672,7 +672,10 @@ def main():
                     if not frequency_df.empty:
                         frequency_rows_all.append(frequency_df)
 
-            plot_requests = timeseries_cfg.get(watershed, [])
+            plot_requests = timeseries_cfg.get(
+                watershed,
+                timeseries_cfg.get("__default__", []),
+            )
             if isinstance(plot_requests, dict):
                 plot_requests = [plot_requests]
 

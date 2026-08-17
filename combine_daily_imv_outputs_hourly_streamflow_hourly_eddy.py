@@ -19,6 +19,23 @@ from typing import Dict, List
 import pandas as pd
 
 
+# basin_names ={
+#     'WatonwanR_Watersheds': 'Watonwan',
+#     'LeSueurR_Watersheds': 'LeSueur',
+#     'KettleR_Watersheds': 'KettleRiverModels',
+#     'BlueEarthR_Watersheds': 'BlueEarth',
+#     'LittleFork_Watersheds': 'LittleFork',
+#     'SnakeSE_Watersheds': 'SnakeSE',
+#     'Zumbro_Watersheds': 'Zumbro',
+
+#     'Cloquet_Watersheds': 'Cloquet',
+#     'Sauk_Watersheds': 'Sauk',
+#     'SFCrow_Watersheds': 'SFCrow',
+#     'TwoRivers_Watersheds': 'TwoRivers',
+#     'WildRice_Watersheds': 'WildRiceMarsh'
+# }
+
+
 DEFAULT_WATERSHEDS = [
 	"BlueEarth",
 	"LeSueur",
@@ -27,8 +44,12 @@ DEFAULT_WATERSHEDS = [
 	"LittleFork",
 	"Zumbro",
 	"SnakeSE",
+	"Cloquet",
+	"Sauk",
+	"SFCrow",
+	"TwoRivers",
+	"WildRiceMarsh"
 ]
-
 DEFAULT_SPLITS = ["train", "val", "test"]
 
 
