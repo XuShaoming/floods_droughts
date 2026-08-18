@@ -39,23 +39,40 @@ default_timeseries_valid_range: &DEFAULT_TIMESERIES_VALID_RANGE
   start: "1975-01-01 00:00:00"
   end: "1979-12-31 23:00:00"
 
-# Flip this alias between *DEFAULT_TIMESERIES_TEST_RANGE, *DEFAULT_TIMESERIES_TRAIN_RANGE,
-# and *DEFAULT_TIMESERIES_VALID_RANGE as needed. The __default__ key applies the
-# selected range to every watershed, including watersheds added in the future.
+default_timeseries_test_option: &DEFAULT_TIMESERIES_TEST_OPTION
+  test:
+    __default__:
+      - *DEFAULT_TIMESERIES_TEST_RANGE
+
+default_timeseries_train_option: &DEFAULT_TIMESERIES_TRAIN_OPTION
+  train:
+    __default__:
+      - *DEFAULT_TIMESERIES_TRAIN_RANGE
+
+default_timeseries_valid_option: &DEFAULT_TIMESERIES_VALID_OPTION
+  val:
+    __default__:
+      - *DEFAULT_TIMESERIES_VALID_RANGE
+
+default_timeseries_all_option: &DEFAULT_TIMESERIES_ALL_OPTION
+  <<: [*DEFAULT_TIMESERIES_TEST_OPTION, *DEFAULT_TIMESERIES_TRAIN_OPTION, *DEFAULT_TIMESERIES_VALID_OPTION]
+
+# Select exactly one option. Without a CLI override, this controls which dataset
+# split(s) inference and analysis process and applies to every watershed.
 default_timeseries_range: &DEFAULT_TIMESERIES_RANGE
-  # <<: *DEFAULT_TIMESERIES_TEST_RANGE
-  <<: *DEFAULT_TIMESERIES_TRAIN_RANGE
-  # <<: *DEFAULT_TIMESERIES_VALID_RANGE
+  # <<: *DEFAULT_TIMESERIES_TEST_OPTION
+  # <<: *DEFAULT_TIMESERIES_TRAIN_OPTION
+  # <<: *DEFAULT_TIMESERIES_VALID_OPTION
+  <<: *DEFAULT_TIMESERIES_ALL_OPTION
 
 default_timeseries_plots: &DEFAULT_TIMESERIES_PLOTS
-  __default__:
-    - *DEFAULT_TIMESERIES_RANGE
+  <<: *DEFAULT_TIMESERIES_RANGE
 
 base_global_config: &BASE_GLOBAL_CONFIG
   # Data configuration
   data_dir: "data_processed"
   csv_pattern: "{watershed}_{scenario}_combined.csv"
-  static_attributes_file: "data_processed/hspf_CAT_attributes.csv"
+  static_attributes_file: "data_processed/hspf_CAT_attributes_12basins.csv"
   static_attribute_id_col: "characteristic_id"
   static_attribute_value_col: "value"
   static_attribute_model_col: "model"
@@ -152,10 +169,21 @@ streamflow_global_exp1_inference: &streamflow_global_exp1_inference
     Watonwan: [0,1,2,3]
     KettleRiverModels: [0,1,2,3]
   timeseries_plots:
-    __default__:
-      - method: ["latest", "average"]
-        start: "2001-01-01 00:00:00"
-        end: "2005-12-31 23:00:00"
+    train:
+      __default__:
+        - method: ["latest", "average"]
+          start: "1980-01-01 00:00:00"
+          end: "2000-12-31 23:00:00"
+    val:
+      __default__:
+        - method: ["latest", "average"]
+          start: "1975-01-01 00:00:00"
+          end: "1979-12-31 23:00:00"
+    test:
+      __default__:
+        - method: ["latest", "average"]
+          start: "2001-01-01 00:00:00"
+          end: "2005-12-31 23:00:00"
   metrics_output: "analysis_results"
 
 streamflow_global_exp1_inference_train:

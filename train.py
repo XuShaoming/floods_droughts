@@ -49,6 +49,17 @@ from dataloader import FloodDroughtDataLoader
 from models.LSTMModel import LSTMModel
 
 
+def resolve_device(device_cfg):
+    """Resolve auto, CPU, numeric GPU indices, and explicit CUDA devices."""
+    if device_cfg is None or str(device_cfg).strip().lower() == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    device_name = str(device_cfg).strip().lower()
+    if device_name.isdigit():
+        device_name = f"cuda:{device_name}"
+    return torch.device(device_name)
+
+
 def load_config(config_path):
     """
     Load configuration from YAML file.
@@ -406,6 +417,8 @@ def main():
                        help='Experiment name from config file (for multi-experiment configs)')
     parser.add_argument('--seed', type=int, default=42,
                        help='Random seed for reproducibility')
+    parser.add_argument('--device', type=str, default=None,
+                       help='Device override: auto, cpu, 0, 1, ... or cuda:N. Overrides the config file.')
     
     args = parser.parse_args()
     
@@ -482,11 +495,8 @@ def main():
     os.makedirs(save_dir, exist_ok=True)
     
     # Set device
-    device_config = config.get('device', 'auto')
-    if device_config == 'auto':
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    else:
-        device = torch.device(device_config)
+    device_config = args.device if args.device is not None else config.get('device', 'auto')
+    device = resolve_device(device_config)
     print(f"Using device: {device}")
     
     # Set random seeds for reproducibility

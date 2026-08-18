@@ -70,6 +70,12 @@ def parse_args():
         help="Experiment entry name inside the config file.",
     )
     parser.add_argument("--seed", type=int, default=None, help="Random seed (overrides config).")
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=None,
+        help="Device override: auto, cpu, 0, 1, ... or cuda:N. Overrides the config file.",
+    )
     return parser.parse_args()
 
 
@@ -384,7 +390,7 @@ def main():
     save_dir = os.path.join(save_root, exp_name)
     os.makedirs(save_dir, exist_ok=True)
 
-    device_cfg = config.get("device", "auto")
+    device_cfg = args.device if args.device is not None else config.get("device", "auto")
     device = resolve_device(device_cfg)
     print(f"Using device: {device}")
 

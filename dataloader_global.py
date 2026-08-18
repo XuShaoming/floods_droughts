@@ -10,6 +10,11 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import StandardScaler
 
 
+STATIC_WATERSHED_NAME_ALIASES = {
+    "StLouisCloquet": "Cloquet",
+}
+
+
 class GlobalTimeSeriesDataset(Dataset):
     """Dataset that returns (dynamic_window, static_vector, target_window)."""
 
@@ -257,19 +262,26 @@ class GlobalFloodDroughtDataLoader:
     def _prepare_static_attributes(self):
         """Load and pivot static watershed attributes, then build lookup table."""
         df = pd.read_csv(self.static_attributes_file)
-        
-        # Handle case where static file uses shortened names (e.g., 'Kettle' vs 'KettleRiverModels')
-        # Filter rows where static name matches or is contained in any requested watershed
+
+        # Resolve known aliases first, then support shortened static names such as
+        # "Kettle" for "KettleRiverModels".
         available_static_names = set(df[self.static_attribute_model_col].unique())
-        
-        def matches_any_watershed(static_name: str) -> bool:
-            """Check if static_name matches or is contained in any watershed name."""
+
+        def resolve_watershed_name(static_name: str) -> Optional[str]:
+            canonical_name = STATIC_WATERSHED_NAME_ALIASES.get(
+                str(static_name),
+                str(static_name),
+            )
             for watershed in self.watersheds:
-                if static_name == watershed or static_name in watershed:
-                    return True
-            return False
-        
-        df = df[df[self.static_attribute_model_col].apply(matches_any_watershed)]
+                if canonical_name == watershed or canonical_name in watershed:
+                    return watershed
+            return None
+
+        df = df.copy()
+        df["_resolved_watershed"] = df[self.static_attribute_model_col].apply(
+            resolve_watershed_name
+        )
+        df = df[df["_resolved_watershed"].notna()]
 
         if df.empty:
             raise ValueError(
@@ -278,28 +290,24 @@ class GlobalFloodDroughtDataLoader:
             )
 
         pivot = df.pivot_table(
-            index=self.static_attribute_model_col,
+            index="_resolved_watershed",
             columns=self.static_attribute_id_col,
             values=self.static_attribute_value_col,
             aggfunc="first",
         )
 
-        # Create mapping from static file names to watershed names
-        # Map each static name to the watershed it's contained in
-        static_to_watershed_map = {}
-        for static_name in pivot.index:
-            for watershed in self.watersheds:
-                if static_name == watershed or static_name in watershed:
-                    static_to_watershed_map[static_name] = watershed
-                    break
-        
-        # Rename index from static file names to watershed names
-        pivot.index = pivot.index.map(lambda x: static_to_watershed_map.get(x, x))
-
         # Ensure every requested watershed has a row
         pivot = pivot.reindex(self.watersheds)
 
-        # Fill missing values column-wise, fallback to zeros
+        missing_watersheds = pivot.index[pivot.isna().all(axis=1)].tolist()
+        if missing_watersheds:
+            raise ValueError(
+                "Static attributes are missing for requested watersheds "
+                f"{missing_watersheds} in {self.static_attributes_file}. "
+                f"Available static names: {sorted(available_static_names)}"
+            )
+
+        # Fill individual missing characteristics, but never an entirely missing basin.
         pivot = pivot.astype(float)
         pivot = pivot.fillna(pivot.mean())
         pivot = pivot.fillna(0.0)

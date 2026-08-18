@@ -559,6 +559,12 @@ def parse_args():
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed for deterministic loaders.")
     parser.add_argument(
+        "--device",
+        type=str,
+        default=None,
+        help="Device override: auto, cpu, 0, 1, ... or cuda:N. Overrides the config file.",
+    )
+    parser.add_argument(
         "--dataset",
         type=str,
         default=None,
@@ -646,9 +652,14 @@ def main():
             return [value]
         return list(value)
 
+    def configured_timeseries_splits() -> List[str]:
+        timeseries_cfg = config.get("timeseries_plots", {})
+        if not isinstance(timeseries_cfg, dict):
+            return []
+        return [split for split in ("train", "val", "test") if split in timeseries_cfg]
+
     dataset_arg = args.dataset
     config_split = config.get("split")
-    dataset_choice = dataset_arg if dataset_arg is not None else config_split
     valid_choices = {"train", "val", "test", "all"}
 
     if dataset_arg is not None and dataset_arg not in valid_choices:
@@ -659,13 +670,14 @@ def main():
     elif dataset_arg is not None:
         splits_to_run = [dataset_arg]
     else:
-        normalized = normalize_splits(config_split)
+        normalized = configured_timeseries_splits() or normalize_splits(config_split)
         if not normalized:
             splits_to_run = ["test"]
         else:
             splits_to_run = normalized
 
-    aggregate_all = dataset_arg == "all"
+    aggregate_all = set(splits_to_run) == {"train", "val", "test"}
+    dataset_choice = dataset_arg or ("all" if aggregate_all else splits_to_run[0])
 
     reconstruction_methods = args.reconstruction_methods or config.get("reconstruction_methods") or ["average", "latest"]
     if not reconstruction_methods:
@@ -676,7 +688,7 @@ def main():
     denorm_method = config.get("denormalization_method", "target_scaler")
     file_format = config.get("window_file_format", "csv")
 
-    device_cfg = combined_config.get("device", "auto")
+    device_cfg = args.device if args.device is not None else combined_config.get("device", "auto")
     model, _, model_config, device, checkpoint_path = load_model(model_root, checkpoint_name, device_cfg)
     seed = args.seed if args.seed is not None else combined_config.get("seed", 42)
 

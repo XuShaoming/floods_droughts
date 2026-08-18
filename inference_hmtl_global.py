@@ -389,6 +389,12 @@ def parse_args():
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed for deterministic loaders.")
     parser.add_argument(
+        "--device",
+        type=str,
+        default=None,
+        help="Device override: auto, cpu, 0, 1, ... or cuda:N. Overrides the config file.",
+    )
+    parser.add_argument(
         "--dataset",
         type=str,
         default=None,
@@ -494,7 +500,7 @@ def main():
     reconstruction_methods = [method.lower() for method in reconstruction_methods]
     reconstruction_methods = list(dict.fromkeys(reconstruction_methods))
 
-    device_cfg = combined_config.get("device", "auto")
+    device_cfg = args.device if args.device is not None else combined_config.get("device", "auto")
     model, _, model_config, device, checkpoint_path = load_model(model_root, checkpoint_name, device_cfg)
     seed = args.seed if args.seed is not None else combined_config.get("seed", 42)
 

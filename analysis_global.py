@@ -103,6 +103,26 @@ def clean_pair(obs_series: pd.Series, pred_series: pd.Series) -> Tuple[np.ndarra
     return df["obs"].to_numpy(dtype=np.float64), df["pred"].to_numpy(dtype=np.float64)
 
 
+def get_timeseries_requests_for_watershed(
+    timeseries_cfg: Dict,
+    split: str,
+    watershed: str,
+) -> List[Dict]:
+    """Resolve split-specific requests, falling back to watershed defaults."""
+    if not isinstance(timeseries_cfg, dict):
+        return []
+
+    split_cfg = timeseries_cfg.get(split)
+    if isinstance(split_cfg, dict):
+        requests = split_cfg.get(watershed, split_cfg.get("__default__", []))
+    else:
+        requests = timeseries_cfg.get(watershed, timeseries_cfg.get("__default__", []))
+
+    if isinstance(requests, dict):
+        return [requests]
+    return requests or []
+
+
 def tail_metrics(obs: np.ndarray, pred: np.ndarray, quantiles: Sequence[float]) -> Dict[str, float]:
     """
     Compute upper-tail diagnostics for non-technical reporting.
@@ -473,7 +493,13 @@ def parse_args():
         default=None,
         help="If multiple checkpoints are defined, pick which one to analyze.",
     )
-    parser.add_argument("--split", type=str, default=None, help="Dataset split to analyze (train/val/test).")
+    parser.add_argument(
+        "--split",
+        type=str,
+        default=None,
+        choices=["train", "val", "test", "all"],
+        help="Dataset split to analyze (train/val/test/all).",
+    )
     parser.add_argument(
         "--reconstruction-methods",
         type=str,
@@ -551,6 +577,12 @@ def main():
             return [value]
         return list(value)
 
+    def configured_timeseries_splits() -> List[str]:
+        timeseries_cfg = config.get("timeseries_plots", {})
+        if not isinstance(timeseries_cfg, dict):
+            return []
+        return [split for split in ("train", "val", "test") if split in timeseries_cfg]
+
     manifest_splits = manifest.get("requested_splits") or manifest.get("splits")
     split_arg = args.split
     config_split = config.get("split")
@@ -561,7 +593,7 @@ def main():
     elif split_arg:
         splits_to_analyze = [split_arg]
     else:
-        splits_to_analyze = normalize_splits(config_split)
+        splits_to_analyze = configured_timeseries_splits() or normalize_splits(config_split)
         if not splits_to_analyze:
             splits_to_analyze = normalize_splits(dataset_choice_manifest)
         if not splits_to_analyze:
@@ -672,12 +704,11 @@ def main():
                     if not frequency_df.empty:
                         frequency_rows_all.append(frequency_df)
 
-            plot_requests = timeseries_cfg.get(
+            plot_requests = get_timeseries_requests_for_watershed(
+                timeseries_cfg,
+                split,
                 watershed,
-                timeseries_cfg.get("__default__", []),
             )
-            if isinstance(plot_requests, dict):
-                plot_requests = [plot_requests]
 
             for idx, request in enumerate(plot_requests):
                 request_methods = request.get("method")
