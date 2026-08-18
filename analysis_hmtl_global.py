@@ -20,6 +20,8 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from hydrology_metrics import calculate_hydrology_metrics
+
 
 def get_experiment_config(config_path: str, experiment: Optional[str]):
     with open(config_path, "r") as file:
@@ -109,18 +111,7 @@ def load_dataframe(path: str, file_format: str) -> pd.DataFrame:
 
 
 def basic_metrics(pred: np.ndarray, obs: np.ndarray) -> Dict[str, float]:
-    if pred.size == 0:
-        return {"MSE": np.nan, "RMSE": np.nan, "MAE": np.nan, "R2": np.nan, "MAPE": np.nan}
-
-    mse = float(np.mean((pred - obs) ** 2))
-    rmse = float(np.sqrt(mse))
-    mae = float(np.mean(np.abs(pred - obs)))
-    ss_res = float(np.sum((obs - pred) ** 2))
-    ss_tot = float(np.sum((obs - np.mean(obs)) ** 2))
-    r2 = float(1 - ss_res / ss_tot) if ss_tot != 0 else float("nan")
-    mask = obs != 0
-    mape = float(np.mean(np.abs((obs[mask] - pred[mask]) / obs[mask])) * 100) if np.any(mask) else float("nan")
-    return {"MSE": mse, "RMSE": rmse, "MAE": mae, "R2": r2, "MAPE": mape}
+    return calculate_hydrology_metrics(pred, obs)
 
 
 def compute_metrics(df: pd.DataFrame, target_names: Sequence[str]) -> Dict[str, Dict[str, float]]:

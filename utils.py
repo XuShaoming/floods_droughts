@@ -7,6 +7,8 @@ import torch
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
+from hydrology_metrics import calculate_hydrology_metrics
+
 
 def get_scheduler(optimizer, config):
 	"""
@@ -132,24 +134,7 @@ def calculate_metrics(predictions, targets, scaler=None):
 			predictions = scaler.inverse_transform(predictions)
 			targets = scaler.inverse_transform(targets)
 
-	mse = np.mean((predictions - targets) ** 2)
-	rmse = np.sqrt(mse)
-	mae = np.mean(np.abs(predictions - targets))
-
-	ss_res = np.sum((targets - predictions) ** 2)
-	ss_tot = np.sum((targets - np.mean(targets)) ** 2)
-	r2 = 1 - (ss_res / ss_tot)
-
-	mask = targets != 0
-	mape = np.mean(np.abs((targets[mask] - predictions[mask]) / targets[mask])) * 100
-
-	return {
-		"MSE": float(mse),
-		"RMSE": float(rmse),
-		"MAE": float(mae),
-		"R2": float(r2),
-		"MAPE": float(mape),
-	}
+	return calculate_hydrology_metrics(predictions, targets)
 
 
 def save_model(model, optimizer, epoch, loss, model_config, save_path):

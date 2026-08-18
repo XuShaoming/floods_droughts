@@ -41,7 +41,8 @@ Main training script with YAML configuration support:
 #### `inference.py` - Model Evaluation System
 Complete model evaluation and analysis pipeline:
 - **Model loading**: Automatic model and configuration loading from experiment directories
-- **Comprehensive metrics**: MSE, RMSE, MAE, R², NSE, KGE calculations
+- **Comprehensive metrics**: MSE, RMSE, MAE, R², MAPE, NSE, KGE and its
+  correlation/variability/bias components, sigma-normalized RMSE, and signed bias
 - **Rich visualizations**: Scatter plots, time series reconstruction, residual analysis
 - **Denormalization**: Proper scaling back to original units using saved scalers
 - **Results export**: Automated saving of predictions and analysis results

@@ -46,6 +46,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 from dataloader import FloodDroughtDataLoader
+from hydrology_metrics import calculate_hydrology_metrics
 from models.LSTMModel import LSTMModel
 
 
@@ -222,27 +223,7 @@ def calculate_metrics(predictions, targets, scaler=None):
     else:
         print("Debug: No scaler provided, using raw values")
     
-    # Calculate metrics
-    mse = np.mean((predictions - targets) ** 2)
-    rmse = np.sqrt(mse)
-    mae = np.mean(np.abs(predictions - targets))
-    
-    # Calculate R-squared
-    ss_res = np.sum((targets - predictions) ** 2)
-    ss_tot = np.sum((targets - np.mean(targets)) ** 2)
-    r2 = 1 - (ss_res / ss_tot)
-    
-    # Calculate MAPE (avoid division by zero)
-    mask = targets != 0
-    mape = np.mean(np.abs((targets[mask] - predictions[mask]) / targets[mask])) * 100
-    
-    return {
-        'MSE': float(mse),
-        'RMSE': float(rmse),
-        'MAE': float(mae),
-        'R2': float(r2),
-        'MAPE': float(mape)
-    }
+    return calculate_hydrology_metrics(predictions, targets)
 
 
 def train_epoch(model, train_loader, criterion, optimizer, device, target_names, grad_clip_norm=1.0):
