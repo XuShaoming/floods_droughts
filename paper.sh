@@ -84,30 +84,29 @@
 # wait
 # Re-run inference and analysis to regenerate metrics; training remains disabled.
 # Valid --dataset choices: train, val, test, all
-python inference_global.py --config config_global.yaml --experiment daily_global_streamflow_inference --dataset all --device 0 &
-python inference_global.py --config config_global.yaml --experiment daily_global_PET_inference --dataset all --device 1 &
-python inference_global.py --config config_global.yaml --experiment daily_global_ET_inference --dataset all --device 2 &
-python inference_global.py --config config_global.yaml --experiment daily_global_SUPY_inference --dataset all --device 3 &
-wait
-python inference_global.py --config config_global.yaml --experiment daily_global_WYIE_inference --dataset all --device 0 &
-python inference_global.py --config config_global.yaml --experiment daily_global_SNOW_inference --dataset all --device 1 &
-python inference_global.py --config config_global.yaml --experiment daily_global_TWS_inference --dataset all --device 2 &
-python inference_global.py --config config_global.yaml --experiment daily_global_LZS_inference --dataset all --device 3 &
-python inference_global.py --config config_global.yaml --experiment daily_global_AGW_inference --dataset all --device 2 &
-wait
-# Valid --split choices: train, val, test, all
-python analysis_global.py --config config_global.yaml --experiment daily_global_streamflow_analysis --split all &
-python analysis_global.py --config config_global.yaml --experiment daily_global_PET_analysis --split all &
-python analysis_global.py --config config_global.yaml --experiment daily_global_ET_analysis --split all &
-python analysis_global.py --config config_global.yaml --experiment daily_global_SUPY_analysis --split all &
-python analysis_global.py --config config_global.yaml --experiment daily_global_WYIE_analysis --split all &
-wait
-python analysis_global.py --config config_global.yaml --experiment daily_global_SNOW_analysis --split all &
-python analysis_global.py --config config_global.yaml --experiment daily_global_TWS_analysis --split all &
-python analysis_global.py --config config_global.yaml --experiment daily_global_LZS_analysis --split all &
-python analysis_global.py --config config_global.yaml --experiment daily_global_AGW_analysis --split all &
-wait
-
+# python inference_global.py --config config_global.yaml --experiment daily_global_streamflow_inference --dataset all --device 0 &
+# python inference_global.py --config config_global.yaml --experiment daily_global_PET_inference --dataset all --device 1 &
+# python inference_global.py --config config_global.yaml --experiment daily_global_ET_inference --dataset all --device 2 &
+# python inference_global.py --config config_global.yaml --experiment daily_global_SUPY_inference --dataset all --device 3 &
+# wait
+# python inference_global.py --config config_global.yaml --experiment daily_global_WYIE_inference --dataset all --device 0 &
+# python inference_global.py --config config_global.yaml --experiment daily_global_SNOW_inference --dataset all --device 1 &
+# python inference_global.py --config config_global.yaml --experiment daily_global_TWS_inference --dataset all --device 2 &
+# python inference_global.py --config config_global.yaml --experiment daily_global_LZS_inference --dataset all --device 3 &
+# python inference_global.py --config config_global.yaml --experiment daily_global_AGW_inference --dataset all --device 2 &
+# wait
+# # Valid --split choices: train, val, test, all
+# python analysis_global.py --config config_global.yaml --experiment daily_global_streamflow_analysis --split all &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_PET_analysis --split all &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_ET_analysis --split all &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_SUPY_analysis --split all &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_WYIE_analysis --split all &
+# wait
+# python analysis_global.py --config config_global.yaml --experiment daily_global_SNOW_analysis --split all &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_TWS_analysis --split all &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_LZS_analysis --split all &
+# python analysis_global.py --config config_global.yaml --experiment daily_global_AGW_analysis --split all &
+# wait
 
 
 # # Hourly global streamflow with daily IMV inputs
@@ -130,33 +129,49 @@ wait
 # python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow --device 2 &
 # wait
 
-# Valid --dataset choices: train, val, test, all
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_inference --dataset test --device 0 &
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_no_IMVs_inference --dataset test --device 1 &
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_PET_inference --dataset test --device 2 &
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_ET_inference --dataset test --device 3 &
-wait
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SUPY_inference --dataset test --device 0 &
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_WYIE_inference --dataset test --device 1 &
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SNOW_inference --dataset test --device 2 &
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_TWS_inference --dataset test --device 3 &
-wait
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_LZS_inference --dataset test --device 0 &
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_AGW_inference --dataset test --device 1 &
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_inference --dataset test --device 2 &
-wait
+# # Valid --dataset choices: train, val, test, all
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_inference --dataset test --device 0 &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_no_IMVs_inference --dataset test --device 1 &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_PET_inference --dataset test --device 2 &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_ET_inference --dataset test --device 3 &
+# wait
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SUPY_inference --dataset test --device 0 &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_WYIE_inference --dataset test --device 1 &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SNOW_inference --dataset test --device 2 &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_TWS_inference --dataset test --device 3 &
+# wait
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_LZS_inference --dataset test --device 0 &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_AGW_inference --dataset test --device 1 &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_inference --dataset test --device 2 &
+# wait
 
-# Valid --split choices: train, val, test, all
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_analysis --split test
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_no_IMVs_analysis --split test &
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_PET_analysis --split test &
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_ET_analysis --split test &
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SUPY_analysis --split test &
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_WYIE_analysis --split test &
+# # Valid --split choices: train, val, test, all
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_analysis --split test
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_no_IMVs_analysis --split test &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_PET_analysis --split test &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_ET_analysis --split test &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SUPY_analysis --split test &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_WYIE_analysis --split test &
+# wait
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SNOW_analysis --split test &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_TWS_analysis --split test &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_LZS_analysis --split test &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_AGW_analysis --split test &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_analysis --split test &
+# wait
+
+
+
+
+# Leakage-controlled counterparts to the existing day_shift=0 experiments.
+python combine_daily_imv_outputs.py
+python combine_daily_imv_outputs_hourly_streamflow_hourly_eddy.py --day-shift 1
+python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_day_shift_1 --device 0 &
+python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_day_shift_1 --device 1 &
 wait
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_SNOW_analysis --split test &
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_TWS_analysis --split test &
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_LZS_analysis --split test &
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_AGW_analysis --split test &
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_analysis --split test &
+python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_day_shift_1_inference --dataset test --device 0 &
+python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_day_shift_1_inference --dataset test --device 1 &
+wait
+python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_day_shift_1_analysis --split test &
+python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_day_shift_1_analysis --split test &
 wait

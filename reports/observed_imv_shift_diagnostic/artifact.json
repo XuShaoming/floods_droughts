@@ -1,0 +1,197 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Why the leakage-controlled IMV model performs better",
+    "description": "Technical diagnostic comparing observed-IMV day_shift=0 and day_shift=1 experiments on hourly streamflow.",
+    "generatedAt": "2026-08-18T00:00:00-05:00",
+    "cards": [
+      {
+        "id": "performance_card",
+        "description": "Macro-average reconstructed/latest metrics on the common test timestamps.",
+        "dataset": "headline",
+        "sourceId": "reconstructed_outputs",
+        "metrics": [
+          {"label": "RMSE reduction", "field": "rmse_reduction", "format": "percent"},
+          {"label": "MAE reduction", "field": "mae_reduction", "format": "percent"},
+          {"label": "NSE gain", "field": "nse_gain", "format": "number", "signed": true},
+          {"label": "RMSE wins", "field": "rmse_wins", "format": "number"}
+        ]
+      }
+    ],
+    "tables": [
+      {
+        "id": "macro_table",
+        "title": "Common-timestamp test comparison",
+        "subtitle": "Macro average across 12 watersheds; lower is better for RMSE and MAE, higher is better for NSE and KGE.",
+        "dataset": "macro_metrics",
+        "sourceId": "reconstructed_outputs",
+        "columns": [
+          {"field": "metric", "label": "Metric", "type": "text"},
+          {"field": "day0", "label": "Day shift 0", "format": "number"},
+          {"field": "day1", "label": "Day shift 1", "format": "number"},
+          {"field": "change", "label": "Shift 1 change", "type": "text"},
+          {"field": "wins", "label": "Shift 1 wins", "type": "text"}
+        ]
+      },
+      {
+        "id": "basin_table",
+        "title": "RMSE by watershed",
+        "subtitle": "Reconstructed/latest metrics from each experiment's summary_metrics.json.",
+        "dataset": "basin_metrics",
+        "sourceId": "summary_metrics",
+        "defaultSort": {"field": "rmse_change_pct", "direction": "asc"},
+        "columns": [
+          {"field": "watershed", "label": "Watershed", "type": "text"},
+          {"field": "rmse_day0", "label": "RMSE day 0", "format": "number"},
+          {"field": "rmse_day1", "label": "RMSE day 1", "format": "number"},
+          {"field": "rmse_change_pct", "label": "Change", "format": "percent", "signed": true},
+          {"field": "nse_day0", "label": "NSE day 0", "format": "number"},
+          {"field": "nse_day1", "label": "NSE day 1", "format": "number"}
+        ]
+      },
+      {
+        "id": "flow_band_table",
+        "title": "MAE by observed-flow band",
+        "subtitle": "Computed on timestamps shared by day 0 and day 1 within every watershed.",
+        "dataset": "flow_bands",
+        "sourceId": "reconstructed_outputs",
+        "columns": [
+          {"field": "band", "label": "Observed-flow band", "type": "text"},
+          {"field": "mae_day0", "label": "MAE day 0", "format": "number"},
+          {"field": "mae_day1", "label": "MAE day 1", "format": "number"},
+          {"field": "mean_change_pct", "label": "Mean within-basin change", "format": "percent", "signed": true},
+          {"field": "wins", "label": "Shift 1 wins", "type": "text"}
+        ]
+      },
+      {
+        "id": "lag_table",
+        "title": "Feature alignment with current hourly streamflow",
+        "subtitle": "Macro mean Pearson correlation across 12 watersheds on the test split. Lag 1 means the prior day's daily IMV.",
+        "dataset": "lag_correlations",
+        "sourceId": "processed_inputs",
+        "columns": [
+          {"field": "feature", "label": "IMV", "type": "text"},
+          {"field": "lag0_corr", "label": "Lag 0 correlation", "format": "number"},
+          {"field": "lag1_corr", "label": "Lag 1 correlation", "format": "number"},
+          {"field": "interpretation", "label": "Stronger alignment", "type": "text"}
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "summary_metrics",
+        "label": "Experiment summary metrics",
+        "path": "experiments/hourly_global_streamflow_observed_IMVs/test_results/analysis_results/test/summary_metrics.json"
+      },
+      {
+        "id": "summary_metrics_shift1",
+        "label": "Shift-1 experiment summary metrics",
+        "path": "experiments/hourly_global_streamflow_observed_IMVs_day_shift_1/test_results/analysis_results/test/summary_metrics.json"
+      },
+      {
+        "id": "reconstructed_outputs",
+        "label": "Per-watershed reconstructed test series for both experiments",
+        "path": "experiments/hourly_global_streamflow_observed_IMVs/test_results"
+      },
+      {
+        "id": "processed_inputs",
+        "label": "Processed hourly inputs for day-shift 0 and 1",
+        "path": "data_processed"
+      },
+      {
+        "id": "archived_hourly_daily",
+        "label": "Archived paired hourly and daily HSPF IMV outputs",
+        "path": "data/flow_data_20260127_bak"
+      },
+      {
+        "id": "training_config",
+        "label": "Shared model configuration",
+        "path": "config_global.yaml"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "conclusion",
+        "type": "markdown",
+        "body": "## Conclusion\n\n**The day-1 result is credible, but it does not show that leakage is harmless.** On exactly the same 523,008 test timestamps, day shift 1 lowers macro RMSE by 15.2% and MAE by 17.7%, while improving NSE by 0.0199. Leakage only makes more information available; it does not guarantee a finite LSTM will generalize better. Here, the prior-day IMVs appear to be better aligned with watershed response and provide an easier, more stable signal than same-day aggregates."
+      },
+      {"id": "headline", "type": "metric-strip", "cardIds": ["performance_card"]},
+      {"id": "macro", "type": "table", "tableId": "macro_table"},
+      {
+        "id": "comparability",
+        "type": "markdown",
+        "body": "## What was verified\n\n- Day 0 contains 525,312 reconstructed test rows; day 1 contains 523,008 because its first day has no prior-day IMV. Restricting both models to the 523,008 shared timestamps leaves the conclusion unchanged.\n- All 144 stored metric values in each experiment were independently recomputed from reconstructed CSVs and matched exactly.\n- The observed targets agree on the overlap to serialization precision.\n- The configurations have the same architecture, feature count, splits, optimizer settings, and seed; their intended differences are the processed-data directory and IMV date alignment."
+      },
+      {"id": "basins", "type": "table", "tableId": "basin_table"},
+      {"id": "bands", "type": "table", "tableId": "flow_band_table"},
+      {
+        "id": "mechanism",
+        "type": "markdown",
+        "body": "## Why a non-leaky model can win\n\n1. **Hydrologic lag:** supply and storage signals often affect outlet flow after routing and storage delays. On the test data, lag-1 SUPY, WYIE, AGW, and TWS have stronger macro correlations with current streamflow than their same-day values.\n2. **A better learning problem:** repeating a completed daily aggregate across all 24 same-day targets gives the model a temporally coarse, partly future-looking shortcut. That shortcut can be noisy or phase-misaligned for individual hours. Lagging it makes the input causal and can act as useful regularization.\n3. **Optimization differed:** the selected day-1 checkpoint reached validation loss 0.04809 at epoch 64; day 0 reached 0.05423 at epoch 25. The lower validation loss is consistent with the test improvement, though it does not prove the physical mechanism.\n4. **The gain is broad:** shift 1 improves MAE in all 12 watersheds and improves errors across low, middle, and high flow bands. It is not driven by one basin or one flow regime."
+      },
+      {"id": "lags", "type": "table", "tableId": "lag_table"},
+      {
+        "id": "timestamp_semantics",
+        "type": "markdown",
+        "body": "## The original daily timestamps are not simply off by one day\n\nThe archived Kettle River files contain both hourly and daily IMVs. Aggregating the 24 hourly flux values by their own calendar date matches the daily row far better than assigning that aggregate to either adjacent day. For SUPY, the mean absolute mismatch is 0.0128 on the same date, compared with 0.0986 for the previous date and 0.1009 for the next date. PET and ET show the same pattern. Thus day 0 genuinely includes information accumulated during the current day; adding one day to the daily timestamp correctly makes source day D available to hourly targets on D+1."
+      },
+      {
+        "id": "limits",
+        "type": "markdown",
+        "body": "## What is not yet proven\n\nThis is one training seed per alignment, so it does not establish that day shift 1 is intrinsically superior. Randomness and the changed sequence population can affect optimization. The baseline experiment directory also contains multiple training logs, which makes run provenance less clean than ideal.\n\nThe decisive follow-up is a paired multi-seed lag sweep over day shifts 0, 1, and 2, evaluated on the identical timestamp intersection, with separately versioned checkpoints and histories. Feature-group ablations should test whether the gain is concentrated in SUPY/WYIE/AGW/TWS.\n\n**Visualization choice:** no chart is included because the comparison has only two treatments and 12 watersheds; exact tables preserve the audit trail and make small metric differences easier to inspect."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-18T00:00:00-05:00",
+    "status": "complete",
+    "datasets": {
+      "headline": [
+        {"rmse_reduction": 0.1521, "mae_reduction": 0.1767, "nse_gain": 0.019871, "rmse_wins": 9}
+      ],
+      "macro_metrics": [
+        {"metric": "RMSE", "day0": 536.312, "day1": 454.712, "change": "-15.21%", "wins": "9 / 12"},
+        {"metric": "MAE", "day0": 227.109, "day1": 186.970, "change": "-17.67%", "wins": "12 / 12"},
+        {"metric": "NSE", "day0": 0.920917, "day1": 0.940788, "change": "+0.019871", "wins": "9 / 12"},
+        {"metric": "KGE", "day0": 0.866694, "day1": 0.880447, "change": "+0.013753", "wins": "7 / 12"}
+      ],
+      "basin_metrics": [
+        {"watershed": "BlueEarth", "rmse_day0": 1358.896, "rmse_day1": 920.787, "rmse_change_pct": -0.3224, "nse_day0": 0.8826, "nse_day1": 0.9463},
+        {"watershed": "Cloquet", "rmse_day0": 1281.935, "rmse_day1": 1158.038, "rmse_change_pct": -0.0966, "nse_day0": 0.8776, "nse_day1": 0.9004},
+        {"watershed": "KettleRiverModels", "rmse_day0": 570.286, "rmse_day1": 573.072, "rmse_change_pct": 0.0049, "nse_day0": 0.9605, "nse_day1": 0.9603},
+        {"watershed": "LeSueur", "rmse_day0": 649.314, "rmse_day1": 576.985, "rmse_change_pct": -0.1114, "nse_day0": 0.9005, "nse_day1": 0.9217},
+        {"watershed": "LittleFork", "rmse_day0": 412.671, "rmse_day1": 420.255, "rmse_change_pct": 0.0184, "nse_day0": 0.9596, "nse_day1": 0.9582},
+        {"watershed": "SFCrow", "rmse_day0": 267.539, "rmse_day1": 236.066, "rmse_change_pct": -0.1176, "nse_day0": 0.9288, "nse_day1": 0.9448},
+        {"watershed": "Sauk", "rmse_day0": 222.178, "rmse_day1": 178.459, "rmse_change_pct": -0.1968, "nse_day0": 0.8741, "nse_day1": 0.9189},
+        {"watershed": "SnakeSE", "rmse_day0": 355.923, "rmse_day1": 241.134, "rmse_change_pct": -0.3225, "nse_day0": 0.9387, "nse_day1": 0.9719},
+        {"watershed": "TwoRivers", "rmse_day0": 374.704, "rmse_day1": 232.866, "rmse_change_pct": -0.3785, "nse_day0": 0.9496, "nse_day1": 0.9806},
+        {"watershed": "Watonwan", "rmse_day0": 263.330, "rmse_day1": 250.370, "rmse_change_pct": -0.0492, "nse_day0": 0.9277, "nse_day1": 0.9348},
+        {"watershed": "WildRiceMarsh", "rmse_day0": 258.102, "rmse_day1": 245.739, "rmse_change_pct": -0.0479, "nse_day0": 0.9397, "nse_day1": 0.9456},
+        {"watershed": "Zumbro", "rmse_day0": 408.535, "rmse_day1": 422.772, "rmse_change_pct": 0.0348, "nse_day0": 0.9123, "nse_day1": 0.9060}
+      ],
+      "flow_bands": [
+        {"band": "Low (≤ P50)", "mae_day0": 80.37, "mae_day1": 56.83, "mean_change_pct": -0.3136, "wins": "11 / 12"},
+        {"band": "Middle (P50–P90)", "mae_day0": 212.94, "mae_day1": 187.96, "mean_change_pct": -0.1303, "wins": "10 / 12"},
+        {"band": "High (> P90)", "mae_day0": 1017.39, "mae_day1": 833.62, "mean_change_pct": -0.1519, "wins": "10 / 12"}
+      ],
+      "lag_correlations": [
+        {"feature": "AGW", "lag0_corr": 0.7770, "lag1_corr": 0.7905, "interpretation": "Lag 1"},
+        {"feature": "ET", "lag0_corr": 0.2262, "lag1_corr": 0.2096, "interpretation": "Lag 0"},
+        {"feature": "LZS", "lag0_corr": 0.5177, "lag1_corr": 0.5140, "interpretation": "Lag 0"},
+        {"feature": "PET", "lag0_corr": -0.1127, "lag1_corr": -0.0973, "interpretation": "Lag 0 by absolute value"},
+        {"feature": "SNOW", "lag0_corr": -0.1955, "lag1_corr": -0.1855, "interpretation": "Lag 0 by absolute value"},
+        {"feature": "SUPY", "lag0_corr": 0.1800, "lag1_corr": 0.2750, "interpretation": "Lag 1"},
+        {"feature": "TWS", "lag0_corr": 0.6451, "lag1_corr": 0.6485, "interpretation": "Lag 1"},
+        {"feature": "WYIE", "lag0_corr": -0.1490, "lag1_corr": -0.2126, "interpretation": "Lag 1 by absolute value"}
+      ]
+    }
+  },
+  "package_info": {
+    "originUrl": "artifact://observed-imv-day-shift-diagnostic",
+    "controls": {"edit": false, "refresh": false},
+    "notes": "Chart omitted intentionally: an exact two-treatment comparison table and a 12-row watershed table are more auditable than a chart for this diagnostic."
+  }
+}

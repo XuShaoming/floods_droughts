@@ -5,11 +5,12 @@ Combine daily IMV outputs with hourly streamflow and hourly EDDEV data.
 Workflow per watershed and split:
 1. Load daily IMV outputs from experiments/data_processed/{watershed}_{split}_imv_outputs.csv
 2. For each scenario in the IMV file, load hourly flow and EDDEV files.
-3. Interpolate daily IMV values to hourly resolution by assigning each day value
-   to all hourly timestamps of that day.
+3. Interpolate daily IMV values to hourly resolution. By default, each daily
+   value is assigned to all hourly timestamps of that day. With --day-shift N,
+   the prediction from N days earlier is assigned instead.
 4. Merge hourly IMV, hourly flow, and hourly EDDEV by timestamp (and scenario).
-5. Save combined output to
-   experiments/data_processed/{watershed}_{split}_combined_hourly.csv.
+5. Save shifted outputs under data_processed/day_shift_N. Shift 0 keeps the
+   original experiments/data_processed paths unchanged.
 """
 
 import argparse
@@ -51,6 +52,18 @@ DEFAULT_WATERSHEDS = [
 	"WildRiceMarsh"
 ]
 DEFAULT_SPLITS = ["train", "val", "test"]
+OBSERVED_IMV_COLS = ["PET", "ET", "SUPY", "WYIE", "SNOW", "TWS", "LZS", "AGW"]
+
+
+def non_negative_int(value: str) -> int:
+	"""Parse a non-negative integer for argparse."""
+	try:
+		parsed = int(value)
+	except ValueError as exc:
+		raise argparse.ArgumentTypeError("must be an integer") from exc
+	if parsed < 0:
+		raise argparse.ArgumentTypeError("must be greater than or equal to 0")
+	return parsed
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -88,8 +101,22 @@ def parse_arguments() -> argparse.Namespace:
 	parser.add_argument(
 		"--output-dir",
 		type=str,
-		default="experiments/data_processed",
-		help="Directory to save combined hourly outputs.",
+		default=None,
+		help=(
+			"Directory to save combined hourly outputs. Defaults to "
+			"experiments/data_processed for day shift 0 and "
+			"data_processed/day_shift_N for larger shifts."
+		),
+	)
+	parser.add_argument(
+		"--day-shift",
+		type=non_negative_int,
+		default=0,
+		help=(
+			"Number of days to lag prediction and observed-IMV inputs. For "
+			"example, 1 uses the previous day's inputs for the current day. "
+			"Defaults to 0 for backward compatibility."
+		),
 	)
 	parser.add_argument(
 		"--allow-missing",
@@ -164,10 +191,19 @@ def interpolate_daily_imv_to_hourly(
 	daily_imv: pd.DataFrame,
 	hourly_timestamps: pd.Series,
 	scenario: str,
+	day_shift: int = 0,
 ) -> pd.DataFrame:
 	"""
-	Assign each daily IMV record to all hourly timestamps of the same day.
+	Assign lagged daily IMV records to hourly timestamps.
+
+	A ``day_shift`` of N moves the effective date of every daily prediction
+	forward N days. Consequently, hours on date D receive the prediction from
+	date D-N. An inner merge intentionally removes hours without an available
+	lagged prediction (normally the first N days of a split).
 	"""
+	if day_shift < 0:
+		raise ValueError("day_shift must be greater than or equal to 0")
+
 	# Keep only model prediction columns from IMV outputs; obs_* are redundant
 	# with original hourly sources and are intentionally excluded.
 	imv_cols = [c for c in daily_imv.columns if c.startswith("pred_")]
@@ -179,6 +215,7 @@ def interpolate_daily_imv_to_hourly(
 
 	daily_values = daily_imv[["date"] + imv_cols].copy()
 	daily_values = daily_values.drop_duplicates(subset=["date"], keep="last")
+	daily_values["date"] = daily_values["date"] + pd.to_timedelta(day_shift, unit="D")
 
 	hourly_imv = base.merge(daily_values, on="date", how="inner")
 	hourly_imv["scenario"] = scenario
@@ -192,9 +229,28 @@ def merge_hourly_sources(
 	hourly_eddev: pd.DataFrame,
 	hourly_imv: pd.DataFrame,
 	scenario: str,
+	day_shift: int = 0,
 ) -> pd.DataFrame:
 	# First align flow and EDDEV on timestamp.
 	merged = pd.merge(hourly_flow, hourly_eddev, on="Datetime", how="inner")
+
+	# Lag only the observed IMV inputs. The streamflow target and meteorological
+	# inputs remain aligned with the current hour. Moving the IMV timestamps
+	# forward means an hour on date D receives the value from the same hour on
+	# date D-day_shift.
+	if day_shift < 0:
+		raise ValueError("day_shift must be greater than or equal to 0")
+	if day_shift > 0:
+		observed_cols = [col for col in OBSERVED_IMV_COLS if col in merged.columns]
+		if observed_cols:
+			lagged_observed = merged[["Datetime"] + observed_cols].copy()
+			lagged_observed["Datetime"] += pd.to_timedelta(day_shift, unit="D")
+			merged = merged.drop(columns=observed_cols).merge(
+				lagged_observed,
+				on="Datetime",
+				how="inner",
+			)
+
 	merged["scenario"] = scenario
 
 	# Then align with hourly IMV on timestamp + scenario.
@@ -241,6 +297,7 @@ def process_watershed_split(
 	imv_dir: Path,
 	hourly_data_dir: Path,
 	allow_missing: bool,
+	day_shift: int = 0,
 ) -> pd.DataFrame:
 	imv_path = imv_dir / f"{watershed}_{split_name}_imv_outputs.csv"
 	if not imv_path.exists():
@@ -273,6 +330,7 @@ def process_watershed_split(
 			daily_imv=scenario_imv,
 			hourly_timestamps=hourly_flow["Datetime"],
 			scenario=scenario,
+			day_shift=day_shift,
 		)
 
 		combined = merge_hourly_sources(
@@ -280,6 +338,7 @@ def process_watershed_split(
 			hourly_eddev=hourly_eddev,
 			hourly_imv=hourly_imv,
 			scenario=scenario,
+			day_shift=day_shift,
 		)
 		scenario_frames.append(combined)
 
@@ -301,8 +360,14 @@ def main():
 
 	imv_dir = Path(args.imv_dir)
 	hourly_data_dir = Path(args.hourly_data_dir)
-	output_dir = Path(args.output_dir)
+	default_output_dir = (
+		"experiments/data_processed"
+		if args.day_shift == 0
+		else f"data_processed/day_shift_{args.day_shift}"
+	)
+	output_dir = Path(args.output_dir or default_output_dir)
 	ensure_dir(output_dir)
+	print(f"Using day_shift={args.day_shift}; writing outputs to {output_dir}")
 
 	written = 0
 	aggregate_written = 0
@@ -318,6 +383,7 @@ def main():
 					imv_dir=imv_dir,
 					hourly_data_dir=hourly_data_dir,
 					allow_missing=args.allow_missing,
+					day_shift=args.day_shift,
 				)
 			except Exception as exc:
 				if args.allow_missing:
