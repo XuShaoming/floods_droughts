@@ -163,15 +163,39 @@
 
 
 
-# Leakage-controlled counterparts to the existing day_shift=0 experiments.
-python combine_daily_imv_outputs.py
-python combine_daily_imv_outputs_hourly_streamflow_hourly_eddy.py --day-shift 1
-python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_day_shift_1 --device 0 &
-python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_day_shift_1 --device 1 &
-wait
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_day_shift_1_inference --dataset test --device 0 &
-python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_day_shift_1_inference --dataset test --device 1 &
-wait
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_day_shift_1_analysis --split test &
-python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_day_shift_1_analysis --split test &
-wait
+# # Leakage-controlled counterparts to the existing day_shift=0 experiments.
+# python combine_daily_imv_outputs.py
+# python combine_daily_imv_outputs_hourly_streamflow_hourly_eddy.py --day-shift 1
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_day_shift_1 --device 0 &
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_day_shift_1 --device 1 &
+# python train_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_day_shift_1 --device 2 &
+# wait
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_day_shift_1_inference --dataset test --device 0 &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_day_shift_1_inference --dataset test --device 1 &
+# python inference_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_day_shift_1_inference --dataset test --device 2 &
+# wait
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_day_shift_1_analysis --split test &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_pred_streamflow_day_shift_1_analysis --split test &
+# python analysis_global.py --config config_global.yaml --experiment hourly_global_streamflow_observed_IMVs_day_shift_1_analysis --split test &
+# wait
+
+# Compare H-LSTM, MR-STF, and MR-PTF reconstructed test time series for every basin.
+# python plot_reconstruction_comparison.py
+
+
+
+# python compare_flow_extremes.py
+
+# python compare_flow_extremes.py \
+#   --low-quantile 0.10 \
+#   --high-quantile 0.90 \
+#   --flood-quantile 0.95 \
+#   --min-event-hours 6 \
+#   --event-gap-hours 24 \
+#   --match-window-hours 24 \
+#   --bootstrap-samples 5000 \
+#   --random-seed 42
+
+
+conda run -n imerg_era5 python compare_flow_extremes.py
+conda run -n imerg_era5 python plot_paper_flow_extremes.py

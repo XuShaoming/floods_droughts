@@ -171,6 +171,107 @@ python inference_global.py --model-dir experiments/global_models/streamflow_glob
 
 ### Advanced Analysis Tools
 
+#### Paired extreme-flow model comparison
+
+`compare_flow_extremes.py` uses the same H-LSTM, MR-STF, and MR-PTF sources
+configured in `plot_reconstruction_comparison.py`. It aligns all models to
+common timestamps, uses one observed series and shared basin Q10/Q90/Q95
+thresholds, and reports paired regime errors, bootstrap intervals, flood-event
+matching, flow-duration curves, representative flood hydrographs, and a 3 × 4
+hydrograph figure containing the largest normalized event from every basin.
+
+```bash
+conda run -n imerg_era5 python compare_flow_extremes.py
+```
+
+Create publication-ready versions of the main comparison, basin-level
+performance, watershed-level robustness, and representative flood-event
+figures (PNG, PDF, and SVG):
+
+```bash
+conda run -n imerg_era5 python plot_paper_flow_extremes.py
+```
+
+#### Daily IMV and streamflow evaluation
+
+`analyze_daily_global_results.py` evaluates every `daily_global_*` model that
+uses `T2`, `DEWPT`, `PRECIP`, `SWDNB`, `WSPD10`, and `LH`. It calculates
+watershed-level diagnostics for train, validation, and test reconstructions;
+summarizes KGE as an unweighted watershed mean and sample standard deviation;
+and creates 4 × 3 test-period time-series figures for all eight IMVs and
+streamflow. It also writes a KGE comparison figure, a test-basin heatmap, data
+audit tables, and a documented Markdown report with suggested paper captions.
+
+```bash
+# Full paper-facing analysis in PNG and PDF
+conda run --no-capture-output -n imerg_era5 python analyze_daily_global_results.py
+
+# Faster PNG-only export
+conda run --no-capture-output -n imerg_era5 \
+  python analyze_daily_global_results.py --formats png
+
+# Show every available option
+conda run --no-capture-output -n imerg_era5 \
+  python analyze_daily_global_results.py --help
+```
+
+Outputs are written by default to
+`experiments/daily_global_comparison/analysis_results/`. The main paper table
+is `tables/daily_global_kge_summary.csv`; the exact basin metrics are retained
+in `tables/daily_global_metrics_by_basin.csv`.
+
+#### Hourly versus daily streamflow comparison
+
+`compare_hourly_daily_streamflow.py` compares the hourly H-LSTM experiment
+`hourly_global_streamflow_no_IMVs`, the hourly MR-STF experiment
+`hourly_global_streamflow_pred_streamflow_day_shift_1`, and the daily D-LSTM
+experiment `daily_global_streamflow` during their common test period. It uses the
+project's existing calendar-day repetition method to place each daily
+prediction on the hourly grid, evaluates all three models against the same hourly
+reference, and repeats the comparison after daily averaging. The analysis
+reports RMSE, NSE, KGE, high-flow error, bias, and within-day variation skill;
+it creates full-period 4 x 3 hydrographs, peak-event zooms, and paired
+watershed comparison figures.
+
+```bash
+# Full analysis and PNG/PDF figures
+conda run --no-capture-output -n imerg_era5 \
+  python compare_hourly_daily_streamflow.py
+
+# Faster PNG-only export
+conda run --no-capture-output -n imerg_era5 \
+  python compare_hourly_daily_streamflow.py --formats png
+
+# Show paths, watershed selection, formats, and other options
+conda run --no-capture-output -n imerg_era5 \
+  python compare_hourly_daily_streamflow.py --help
+```
+
+Outputs are written by default to
+`experiments/hourly_daily_streamflow_comparison/test_results/`. See
+`comparison_notes.md` there for the methods, exact aggregate results,
+interpretation cautions, and suggested paper captions.
+
+#### Four-model paper tables and flood-event figure
+
+`compare_four_model_test_performance.py` adds the daily D-LSTM to the
+leakage-controlled H-LSTM, MR-STF, and MR-PTF paper comparisons. It recalculates
+all four models on their exact common hourly test window, writes overall,
+extreme-flow, flood-event, and KGE-component tables to one documented Markdown
+file, saves the unrounded basin values as CSV files, and creates a 4 x 3
+representative-flood-event figure with all models and watersheds. It also writes
+12 full-test-period figures under `reconstructions/`, with model curves and table
+columns ordered D-LSTM, H-LSTM, MR-STF, and MR-PTF while retaining each model's
+established color.
+
+```bash
+conda run --no-capture-output -n imerg_era5 \
+  python compare_four_model_test_performance.py
+```
+
+Outputs are written to
+`experiments/hourly_daily_four_model_comparison/test_results/` by default.
+
 <!-- #### `NHDplus/nhdplus.py` - Watershed Attribute Analysis
 Advanced analysis of National Hydrography Dataset Plus (NHDplus) attributes:
 - **Feature selection**: Correlation-based feature reduction for watershed characteristics

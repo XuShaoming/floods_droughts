@@ -557,6 +557,32 @@ hourly_global_streamflow_analysis:
   metrics_output: "analysis_results"
   window_plots: *DEFAULT_WINDOW_PLOTS
 
+hourly_global_streamflow_day_shift_1: &hourly_global_streamflow_day_shift_1
+  <<: *hourly_global_streamflow
+  description: >
+    One-day-shift counterpart to hourly_global_streamflow. Uses all predicted
+    daily IMVs and daily streamflow from the previous day while predicting the
+    current hourly streamflow.
+  data_dir: "data_processed/day_shift_1"
+
+hourly_global_streamflow_day_shift_1_inference: &hourly_global_streamflow_day_shift_1_inference
+  <<: *hourly_global_streamflow_day_shift_1
+  description: >
+    Inference configuration for hourly_global_streamflow_day_shift_1.
+  source_experiment: "hourly_global_streamflow_day_shift_1"
+  checkpoint_files: "best_model.pth"
+  split: ["train", "val", "test"]
+  reconstruction_methods: ["latest"]
+  window_file_format: "csv"
+  results_subdir: "test_results"
+
+hourly_global_streamflow_day_shift_1_analysis:
+  <<: *hourly_global_streamflow_day_shift_1_inference
+  description: >
+    Analysis configuration for hourly_global_streamflow_day_shift_1.
+  metrics_output: "analysis_results"
+  window_plots: *DEFAULT_WINDOW_PLOTS
+
 hourly_global_streamflow_no_IMVs: &hourly_global_streamflow_no_IMVs
   <<: *BASE_GLOBAL_CONFIG
   description: >

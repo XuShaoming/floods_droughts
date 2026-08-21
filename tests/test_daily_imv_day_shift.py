@@ -15,6 +15,7 @@ class DailyImvDayShiftTests(unittest.TestCase):
 			{
 				"date": pd.to_datetime(["2001-01-01", "2001-01-02", "2001-01-03"]),
 				"pred_PET": [10.0, 20.0, 30.0],
+				"pred_streamflow": [100.0, 200.0, 300.0],
 				"obs_PET": [11.0, 21.0, 31.0],
 			}
 		)
@@ -33,6 +34,8 @@ class DailyImvDayShiftTests(unittest.TestCase):
 		self.assertEqual(actual.loc[0, "pred_PET"], 10.0)
 		self.assertEqual(actual.loc[23, "pred_PET"], 10.0)
 		self.assertEqual(actual.loc[24, "pred_PET"], 20.0)
+		self.assertEqual(actual.loc[0, "pred_streamflow"], 100.0)
+		self.assertEqual(actual.loc[24, "pred_streamflow"], 200.0)
 		self.assertNotIn("obs_PET", actual.columns)
 
 	def test_day_shift_one_uses_previous_day_prediction(self):
@@ -48,6 +51,8 @@ class DailyImvDayShiftTests(unittest.TestCase):
 		self.assertEqual(actual.loc[0, "pred_PET"], 10.0)
 		self.assertEqual(actual.loc[23, "pred_PET"], 10.0)
 		self.assertEqual(actual.loc[24, "pred_PET"], 20.0)
+		self.assertEqual(actual.loc[0, "pred_streamflow"], 100.0)
+		self.assertEqual(actual.loc[24, "pred_streamflow"], 200.0)
 
 	def test_day_shift_two_uses_prediction_from_two_days_earlier(self):
 		actual = interpolate_daily_imv_to_hourly(
